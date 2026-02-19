@@ -162,7 +162,7 @@ neuroaid/
 
 ### 1️⃣ Clone Repository
 
-git clone https://github.com/yourusername/neuroaid.git  
+git clone https://github.com/unnkarm/NeuroAid-AI.git  
 cd neuroaid  
 
 ---
