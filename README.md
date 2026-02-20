@@ -224,11 +224,12 @@ neuroaid/
 │   ├── routers/
 │   │   └── analyze.py                # /api/analyze endpoint
 │   ├── services/
-│   │   └── ai_service.py             # Feature extraction + scoring
+│   │   └── ai_service.py             # Feature extraction + scoring engine
 │   ├── utils/
-│   │   └── logger.py
+│   │   └── logger.py                 # Request/error logging
 │   ├── models/                        # Optional Pydantic models
-│   ├── config.py                     # Weights, thresholds, dummy paths
+│   ├── config.py                     # Weights, thresholds, model paths
+│   ├── db.py                         # Firestore integration
 │   ├── requirements.txt
 │   └── README.md                     # How to run backend
 │
@@ -250,9 +251,9 @@ neuroaid/
 │   ├── api-spec.md
 │   └── research-notes.md
 │
-├── .env.example
-├── docker-compose.yml
-├── README.md
+├── .env.example                       # Environment variables (PORT, Firestore credentials)
+├── docker-compose.yml                  # Optional: containerize frontend + backend + AI
+├── README.md                           # Project overview, hackathon instructions
 └── LICENSE
 ```
 ---
