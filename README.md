@@ -275,7 +275,7 @@ Accessible AI-assisted cognitive screening can significantly improve early aware
 
 ---
 
-### 📜 License
+### 📜 License..
 MIT License
 
 
