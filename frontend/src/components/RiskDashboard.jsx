@@ -79,6 +79,8 @@ export function Sidebar({ role, page, setPage, setView }) {
     { id: "speech",      label: "Speech Test",   icon: "◎" },
     { id: "memory",      label: "Memory Test",   icon: "⬡" },
     { id: "reaction",    label: "Reaction Test", icon: "◷" },
+    { id: "stroop",      label: "Stroop Test",   icon: "◐" },
+    { id: "tap",         label: "Motor Tap",     icon: "⬤" },
     { id: "results",     label: "Results",       icon: "◆" },
     { id: "progress",    label: "Progress",      icon: "↗" },
   ];

@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { injectStyles } from "./utils/theme";
 import { Shell } from "./components/RiskDashboard";
+import { AssessmentProvider } from "./context/AssessmentContext";
 
-// Pages
-import LandingPage    from "./pages/LandingPage";
-import AboutPage      from "./pages/AboutPage";
-import LoginPage      from "./pages/Login";
-import UserDashboard  from "./pages/UserDashboard";
-import AssessmentHub  from "./pages/AssessmentHub";
-import ResultsPage    from "./pages/ResultsPage";
-import ProgressPage   from "./pages/ProgressPage";
+import LandingPage     from "./pages/LandingPage";
+import AboutPage       from "./pages/AboutPage";
+import LoginPage       from "./pages/Login";
+import UserDashboard   from "./pages/UserDashboard";
+import AssessmentHub   from "./pages/AssessmentHub";
+import ResultsPage     from "./pages/ResultsPage";
+import ProgressPage    from "./pages/ProgressPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
-import PatientDetail  from "./pages/PatientDetail";
+import PatientDetail   from "./pages/PatientDetail";
 
-// Assessment components
 import SpeechTest   from "./components/SpeechTest";
 import MemoryTest   from "./components/MemoryTest";
 import ReactionTest from "./components/ReactionTest";
+import StroopTest   from "./components/StroopTest";
+import TapTest      from "./components/TapTest";
 
 injectStyles();
 
@@ -42,6 +43,8 @@ export default function App() {
     "speech":      <SpeechTest     setPage={setPage} />,
     "memory":      <MemoryTest     setPage={setPage} />,
     "reaction":    <ReactionTest   setPage={setPage} />,
+    "stroop":      <StroopTest     setPage={setPage} />,
+    "tap":         <TapTest        setPage={setPage} />,
     "results":     <ResultsPage    setPage={setPage} />,
     "progress":    <ProgressPage />,
   };
@@ -57,8 +60,10 @@ export default function App() {
     : (userPages[page]   ?? userPages["dashboard"]);
 
   return (
-    <Shell role={role} page={page} setPage={setPage} setView={handleView}>
-      {content}
-    </Shell>
+    <AssessmentProvider>
+      <Shell role={role} page={page} setPage={setPage} setView={handleView}>
+        {content}
+      </Shell>
+    </AssessmentProvider>
   );
 }
