@@ -89,20 +89,39 @@ function DiseaseCard({ diseaseKey, prob, level }) {
 }
 
 export default function ResultsPage({ setPage }) {
-  const { apiResult, reset } = useAssessment();
-
-  const r = apiResult || {
-    speech_score: 74, memory_score: 82, reaction_score: 68,
-    executive_score: 77, motor_score: 80,
-    alzheimers_risk: 0.28, dementia_risk: 0.41, parkinsons_risk: 0.18,
-    risk_levels: { alzheimers: "Low", dementia: "Moderate", parkinsons: "Low" },
-    feature_vector: null, attention_variability_index: null,
-    disclaimer: "⚠️ Screening tool only — not a medical diagnosis.",
-  };
-
+  const { apiResult, profile, error } = useAssessment();
+  if (!apiResult || typeof apiResult !== 'object' || Object.keys(apiResult).length === 0) {
+    return (
+      <div style={{ color: T.red, background: T.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+        <div>
+          <h2>Assessment Results Not Found</h2>
+          <p>{error ? error : 'No results available. Please complete all tests and submit your assessment.'}</p>
+          <button style={{ marginTop: 24, padding: '12px 24px', borderRadius: 8, background: T.red, color: T.cream, fontWeight: 600, fontSize: 16 }} onClick={() => setPage('assessments')}>Go Back</button>
+        </div>
+      </div>
+    );
+  }
+  const r = apiResult;
   const fv      = r.feature_vector;
   const today   = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const isLive  = !!apiResult;
+  const userAge = profile?.age ? parseInt(profile.age, 10) : null;
+  const isLive = !!apiResult;
+
+  // Extract composite risk values
+  const compositeRisk = r.composite_risk_score ?? 0;
+  const riskLevel = r.composite_risk_level ?? "Low";
+  const ciLower = r.confidence_lower ?? 0;
+  const ciUpper = r.confidence_upper ?? 100;
+  const uncertainty = r.model_uncertainty ?? 0;
+
+  const riskColorMap = {
+    "Low": T.green,
+    "Mild Concern": T.amber,
+    "Moderate Risk": "#f97316",  // orange
+    "High Risk": T.red,
+  };
+
+  const getRiskColor = (level) => riskColorMap[level] || T.green;
 
   const domainScores = [
     { label: "Speech",    score: Math.round(r.speech_score),    icon: "🎙️", color: T.red    },
@@ -112,8 +131,6 @@ export default function ResultsPage({ setPage }) {
     { label: "Motor",     score: Math.round(r.motor_score),     icon: "🥁", color: T.amber  },
   ];
 
-  const overallHealth = Math.round(domainScores.reduce((s, d) => s + d.score, 0) / domainScores.length);
-
   return (
     <div>
       <div style={{ marginBottom: 36 }}>
@@ -121,18 +138,69 @@ export default function ResultsPage({ setPage }) {
         <p style={{ color: T.creamFaint, fontSize: 14 }}>{today} · {isLive ? "Live 18-feature analysis" : "Demo data — complete tests for real results"}</p>
       </div>
 
-      {/* Overall health bar */}
-      <DarkCard style={{ padding: 36, marginBottom: 24, background: "linear-gradient(135deg,#161010,#100e0e)", border: "1px solid rgba(232,64,64,0.15)" }} hover={false}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 12 }}>Overall Cognitive Health</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: 88, color: T.cream, lineHeight: 1 }}>{overallHealth}</span>
+      {/* Age-normalized results messaging */}
+      {userAge && (
+        <div style={{ marginBottom: 16, color: T.creamFaint, fontSize: 13 }}>
+          <strong>Results are age-normalized:</strong> All scores are compared to typical values for age {userAge}.
+        </div>
+      )}
+
+      {/* Composite risk score with confidence interval */}
+      <DarkCard style={{ padding: 36, marginBottom: 24, background: "linear-gradient(135deg,#161010,#100e0e)", border: `1px solid ${getRiskColor(riskLevel)}33` }} hover={false}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 12 }}>Composite Cognitive Risk Score</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 20 }}>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: 88, color: getRiskColor(riskLevel), lineHeight: 1 }}>{Math.round(compositeRisk)}</span>
               <span style={{ color: T.creamFaint, fontSize: 20, paddingBottom: 12 }}>/100</span>
             </div>
+            
+            {/* Risk level badge */}
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ 
+                background: `${getRiskColor(riskLevel)}18`, 
+                color: getRiskColor(riskLevel), 
+                padding: "6px 16px", 
+                borderRadius: 20, 
+                fontSize: 13, 
+                fontWeight: 700, 
+                letterSpacing: 0.5, 
+                border: `1px solid ${getRiskColor(riskLevel)}33` 
+              }}>
+                ➜ {riskLevel}
+              </span>
+            </div>
+
+            {/* Confidence interval */}
+            <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${T.cardBorder}` }}>
+              <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 0.5, marginBottom: 6 }}>95% Confidence Interval</div>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 16, color: T.cream }}>
+                {Math.round(ciLower)} – {Math.round(ciUpper)} (±{Math.round(uncertainty)}%)
+              </div>
+              <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.05)", marginTop: 8, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%",
+                  width: `${((ciUpper - ciLower) / 100) * 100}%`,
+                  marginLeft: `${(ciLower / 100) * 100}%`,
+                  background: `linear-gradient(90deg, ${getRiskColor(riskLevel)}44, ${getRiskColor(riskLevel)}22)`,
+                  borderRadius: 3
+                }} />
+              </div>
+            </div>
+
+            {/* Model uncertainty note */}
+            <div style={{ fontSize: 12, color: T.creamFaint, lineHeight: 1.6 }}>
+              <strong>Note:</strong> {
+                uncertainty < 12 ? "High confidence in this assessment." :
+                uncertainty < 16 ? "Moderate confidence. Results in borderline range." :
+                "High uncertainty — consider retesting for confirmation."
+              }
+              {riskLevel === "Mild Concern" && " Score in borderline range (50–69) = Model uncertainty is expected."}
+            </div>
           </div>
-          <MiniChart data={[58, 61, 64, 60, 67, 70, overallHealth]} color={T.red} height={80} />
+          <MiniChart data={[58, 61, 64, 60, 67, 70, compositeRisk]} color={getRiskColor(riskLevel)} height={80} />
         </div>
+
         {/* Domain mini scores */}
         <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
           {domainScores.map(d => (
@@ -156,6 +224,12 @@ export default function ResultsPage({ setPage }) {
           <DiseaseCard diseaseKey="dementia"   prob={r.dementia_risk}   level={r.risk_levels.dementia}   />
           <DiseaseCard diseaseKey="parkinsons" prob={r.parkinsons_risk} level={r.risk_levels.parkinsons} />
         </div>
+        {/* Uncertainty note for borderline scores */}
+        {r.composite_risk_level === "Mild Concern" && (
+          <div style={{ color: T.amber, fontSize: 13, marginTop: 8 }}>
+            <strong>Note:</strong> Your score is in the borderline range (50–69). Model uncertainty is expected. Consider retesting or clinical follow-up if symptoms persist.
+          </div>
+        )}
       </div>
 
       {/* Feature vector */}

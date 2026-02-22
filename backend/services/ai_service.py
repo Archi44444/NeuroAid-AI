@@ -110,6 +110,29 @@ def _sigmoid(x: float) -> float:
     return 1.0 / (1.0 + np.exp(-x))
 
 
+def _age_normalization_factor(age: Optional[int]) -> float:
+    """
+    Compute age adjustment factor (0.7 to 1.3).
+    - Young (20-40): baseline
+    - Middle (41-60): mild decline expected
+    - Older (61-80): more decline expected
+    - Very old (80+): significant decline normal
+    Returns a multiplier that's applied to raw domain scores.
+    """
+    if not age or age < 20:
+        return 1.0
+    elif age <= 40:
+        return 1.0  # baseline
+    elif age <= 60:
+        return 1.1  # 10% more lenient
+    elif age <= 75:
+        return 1.2  # 20% more lenient
+    elif age <= 85:
+        return 1.25  # 25% more lenient
+    else:
+        return 1.3  # 30% more lenient (very elderly)
+
+
 def _predict_disease(feature_vec: np.ndarray, weights: np.ndarray, bias: float) -> float:
     """Logistic regression forward pass."""
     logit = float(np.dot(weights, feature_vec)) + bias
@@ -211,11 +234,19 @@ def extract_reaction_features(reaction_times: list, reaction: Optional[ReactionD
                  reaction_drift=round(drift, 2), miss_count=float(miss_count),
                  initiation_delay=round(init_delay, 2))
 
-    speed_score = max(0, 100 - ((mean_rt - 200) / 400) * 100)
-    var_pen     = min(std_rt / 5, 20)
-    drift_pen   = min(max(drift / 10, 0), 20)
-    miss_pen    = min(miss_count * 10, 30)
-    score = float(np.clip(speed_score - var_pen - drift_pen - miss_pen + random.uniform(-2, 2), 0, 100))
+    # CORRECTED: Invert "lower is better" metrics for reaction time
+    # Speed score: penalize only speeds > 400ms (slow). Anything 200-400 is acceptable.
+    # Formula: 100 at 250ms, drops linearly to 0 at 600ms
+    speed_score = max(0, min(100, 100 - ((mean_rt - 250) / 350) * 100))
+    # Variability: std_rt < 30ms is excellent (100), std_rt > 100ms is poor (0)
+    var_score   = max(0, min(100, 100 - (std_rt / 100) * 100))
+    # Consistency penalty: penalize only high drift (fatigue effect) 
+    drift_pen   = min(max(abs(drift) / 15, 0), 20)  # More lenient on drift
+    # Miss penalty: severe only if miss_count > 2
+    miss_pen    = min(miss_count * 15, 30) if miss_count > 0 else 0
+    
+    # Composite reaction score with better balance
+    score = float(np.clip(0.6 * speed_score + 0.3 * var_score - drift_pen - miss_pen + random.uniform(-1, 1), 0, 100))
     return round(score, 2), feats
 
 
@@ -257,6 +288,7 @@ def compute_disease_risks(fv: FeatureVector, profile: Optional[UserProfile] = No
     """
     Build the 18-element feature vector and run three separate logistic models.
     Raw features are normalised to roughly [0, 1] range before scoring.
+    Also computes composite risk score using weighted domain scores.
     """
     vec = np.array([
         fv.wpm / 200.0,
@@ -279,9 +311,12 @@ def compute_disease_risks(fv: FeatureVector, profile: Optional[UserProfile] = No
         fv.tap_interval_std / 200.0,
     ])
 
-    alz_prob  = _predict_disease(vec, ALZ_WEIGHTS,  ALZ_BIAS)
-    dem_prob  = _predict_disease(vec, DEM_WEIGHTS,  DEM_BIAS)
-    park_prob = _predict_disease(vec, PARK_WEIGHTS, PARK_BIAS)
+    # Age normalization for disease probabilities
+    age_factor = _age_normalization_factor(profile.age if profile else None)
+
+    alz_prob  = float(np.clip(_predict_disease(vec, ALZ_WEIGHTS,  ALZ_BIAS) * age_factor, 0, 1))
+    dem_prob  = float(np.clip(_predict_disease(vec, DEM_WEIGHTS,  DEM_BIAS) * age_factor, 0, 1))
+    park_prob = float(np.clip(_predict_disease(vec, PARK_WEIGHTS, PARK_BIAS) * age_factor, 0, 1))
 
     # Clinical profile adjustment (gentle nudge, not dominant)
     if profile:
@@ -327,3 +362,81 @@ def build_feature_vector(speech_f, memory_f, reaction_f, executive_f, motor_f) -
         stroop_rt=executive_f.get("stroop_rt", 550),
         tap_interval_std=motor_f.get("tap_interval_std", 40),
     )
+
+
+def compute_composite_risk_score(
+    speech_score: float,
+    memory_score: float,
+    reaction_score: float,
+    executive_score: float,
+    motor_score: float,
+    profile: Optional[UserProfile] = None,
+) -> dict:
+    """
+    Compute weighted composite risk score using:
+    - Memory:    30%
+    - Speech:    25%
+    - Executive: 20%
+    - Reaction:  15%
+    - Motor:     10%
+    
+    Returns composite score (0-100) with confidence interval.
+    Higher score = higher risk.
+    
+    Note: Input scores are 0-100 where HIGHER = healthier.
+    So we invert: risk_score = 100 - composite_health_score
+    """
+    # Import weights from config if available, else use defaults
+    try:
+        from config import MEMORY_WEIGHT, SPEECH_WEIGHT, EXECUTIVE_WEIGHT, REACTION_WEIGHT, MOTOR_WEIGHT
+        from config import THRESHOLD_MILD, THRESHOLD_MODERATE, THRESHOLD_HIGH
+    except ImportError:
+        # Fallback weights if config not available
+        MEMORY_WEIGHT = 0.30
+        SPEECH_WEIGHT = 0.25
+        EXECUTIVE_WEIGHT = 0.20
+        REACTION_WEIGHT = 0.15
+        MOTOR_WEIGHT = 0.10
+        THRESHOLD_MILD = 50
+        THRESHOLD_MODERATE = 70
+        THRESHOLD_HIGH = 85
+    
+    # Compute weighted health score (higher = healthier)
+    health_score = (
+        MEMORY_WEIGHT * memory_score +
+        SPEECH_WEIGHT * speech_score +
+        EXECUTIVE_WEIGHT * executive_score +
+        REACTION_WEIGHT * reaction_score +
+        MOTOR_WEIGHT * motor_score
+    )
+    
+    # Apply age normalization (lenient for older ages)
+    age_factor = _age_normalization_factor(profile.age if profile else None)
+    health_score = min(100, health_score * age_factor)  # cap at 100
+    
+    # Convert to risk score (0-100, higher = riskier)
+    risk_score = 100 - health_score
+    
+    # Compute confidence interval (wider for borderline scores)
+    # Scores near 50% have more uncertainty
+    uncertainty = 0.1 + (abs(risk_score - 50) / 100) * 0.1  # 10-20% CI
+    ci_lower = max(0, risk_score - (uncertainty * 100) / 2)
+    ci_upper = min(100, risk_score + (uncertainty * 100) / 2)
+    
+    # Map to categorical risk level (4-tier system)
+    if risk_score <= THRESHOLD_MILD:
+        risk_level = "Low"
+    elif risk_score <= THRESHOLD_MODERATE:
+        risk_level = "Mild Concern"
+    elif risk_score <= THRESHOLD_HIGH:
+        risk_level = "Moderate Risk"
+    else:
+        risk_level = "High Risk"
+    
+    return {
+        "composite_risk_score": round(risk_score, 2),
+        "risk_level": risk_level,
+        "confidence_lower": round(ci_lower, 2),
+        "confidence_upper": round(ci_upper, 2),
+        "model_uncertainty": round(uncertainty * 100, 1),
+    }

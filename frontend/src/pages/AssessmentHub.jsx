@@ -8,6 +8,7 @@ export default function AssessmentHub({ setPage }) {
   const {
     speechData, memoryData, reactionData, stroopData, tapData,
     setApiResult, setLoading, setError, loading, error, completedCount,
+    profile,
   } = useAssessment();
 
   const tests = [
@@ -59,6 +60,11 @@ export default function AssessmentHub({ setPage }) {
         tap: tapData ? {
           intervals:  tapData.intervals,
           tap_count:  tapData.tap_count,
+        } : null,
+        profile: profile ? {
+          age: profile.age ? parseInt(profile.age, 10) : null,
+          education_level: profile.education ? parseInt(profile.education, 10) : null,
+          sleep_hours: profile.sleepHours ? parseFloat(profile.sleepHours) : null,
         } : null,
       };
 

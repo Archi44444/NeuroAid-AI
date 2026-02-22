@@ -1,23 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
 import { T } from "../utils/theme";
 import { DarkCard, Btn, Badge } from "../components/RiskDashboard";
 
-const PATIENTS = [
-  { id: 1, name: "Sarah Chen",     age: 68, risk: "High",     score: 42, last: "Feb 18" },
-  { id: 2, name: "Robert Maia",    age: 72, risk: "Moderate", score: 61, last: "Feb 17" },
-  { id: 3, name: "Eleanor Walsh",  age: 65, risk: "Low",      score: 78, last: "Feb 16" },
-  { id: 4, name: "James Okafor",   age: 70, risk: "Moderate", score: 58, last: "Feb 15" },
-  { id: 5, name: "Patricia Liu",   age: 63, risk: "Low",      score: 83, last: "Feb 14" },
-  { id: 6, name: "Thomas Bell",    age: 75, risk: "High",     score: 38, last: "Feb 13" },
-];
-
 export default function DoctorDashboard({ setPage, setSelectedPatient }) {
+  const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const filtered = PATIENTS.filter(p =>
+  useEffect(() => {
+    async function fetchPatients() {
+      const snap = await getDocs(collection(db, "users"));
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPatients(data.filter(p => p.role === "user"));
+    }
+    fetchPatients();
+  }, []);
+
+  const filtered = patients.filter(p =>
     (filter === "All" || p.risk === filter) &&
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const riskColor = r => r === "High" ? T.red : r === "Moderate" ? T.amber : T.green;

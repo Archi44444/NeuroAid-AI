@@ -12,10 +12,20 @@ export function AssessmentProvider({ children }) {
   const [reactionData, setReactionData] = useState(null);
   const [stroopData,   setStroopData]   = useState(null);
   const [tapData,      setTapData]      = useState(null);
-  const [profile,      setProfile]      = useState(null);
+  const [profile,      setProfile]      = useState(() => {
+    // Try to load from localStorage for persistence
+    const stored = localStorage.getItem('neuroaid_profile');
+    return stored ? JSON.parse(stored) : null;
+  });
   const [apiResult,    setApiResult]    = useState(null);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
+
+  // Persist profile to localStorage
+  function updateProfile(newProfile) {
+    setProfile(newProfile);
+    localStorage.setItem('neuroaid_profile', JSON.stringify(newProfile));
+  }
 
   const completedCount = [speechData, memoryData, reactionData, stroopData, tapData].filter(Boolean).length;
 
@@ -23,6 +33,7 @@ export function AssessmentProvider({ children }) {
     setSpeechData(null); setMemoryData(null); setReactionData(null);
     setStroopData(null); setTapData(null);
     setApiResult(null);  setError(null);
+    setProfile(null); localStorage.removeItem('neuroaid_profile');
   }
 
   return (
@@ -32,7 +43,7 @@ export function AssessmentProvider({ children }) {
       reactionData, setReactionData,
       stroopData,   setStroopData,
       tapData,      setTapData,
-      profile,      setProfile,
+      profile,      setProfile: updateProfile,
       apiResult,    setApiResult,
       loading,      setLoading,
       error,        setError,
