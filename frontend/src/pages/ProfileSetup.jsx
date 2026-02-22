@@ -14,6 +14,7 @@ export default function ProfileSetup({ onComplete, user }) {
     education: "", occupation: "",
     medicalHistory: [], currentMeds: "",
     cognitiveComplaints: [], sleepHours: "", exerciseFreq: "",
+    familyHistory: false, existingDiagnosis: false, sleepQuality: "normal",
   });
   const [loading, setLoading] = useState(false);
 
@@ -141,7 +142,39 @@ export default function ProfileSetup({ onComplete, user }) {
 
           {step === 3 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 22, color: T.cream, marginBottom: 4 }}>Cognitive Concerns</div>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 22, color: T.cream, marginBottom: 4 }}>Health Background</div>
+              
+              {/* Family History */}
+              <div>
+                <label style={labelStyle}>Family history of Alzheimer's, dementia, or Parkinson's?</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[{ val: true, label: "Yes" }, { val: false, label: "No" }].map(opt => (
+                    <button key={String(opt.val)} style={{ ...chipBase(data.familyHistory === opt.val), flex: 1 }} onClick={() => update("familyHistory", opt.val)}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Existing diagnosis */}
+              <div>
+                <label style={labelStyle}>Do you have an existing neurological diagnosis?</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[{ val: true, label: "Yes" }, { val: false, label: "No" }].map(opt => (
+                    <button key={String(opt.val)} style={{ ...chipBase(data.existingDiagnosis === opt.val), flex: 1 }} onClick={() => update("existingDiagnosis", opt.val)}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sleep Quality */}
+              <div>
+                <label style={labelStyle}>Sleep quality</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["poor", "fair", "normal", "good", "excellent"].map(q => (
+                    <button key={q} style={chipBase(data.sleepQuality === q)} onClick={() => update("sleepQuality", q)}>{q.charAt(0).toUpperCase() + q.slice(1)}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cognitive complaints */}
               <div>
                 <label style={labelStyle}>Have you noticed any of the following?</label>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

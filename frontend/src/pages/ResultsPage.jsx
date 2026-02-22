@@ -1,289 +1,600 @@
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { T } from "../utils/theme";
 import { DarkCard, Btn, MiniChart } from "../components/RiskDashboard";
 import { useAssessment } from "../context/AssessmentContext";
 
-// ── Disease card styling ───────────────────────────────────────────────────────
-const DISEASE_META = {
-  alzheimers: {
-    label: "Alzheimer's", icon: "🧩",
-    color: "#a78bfa", glow: "rgba(167,139,250,0.2)",
-    primaryFeatures: ["Memory decay", "Word retrieval", "Delayed recall"],
-    description: "Primarily signals short-term memory loss, word-finding difficulties, and delayed recall decline.",
+// ─────────────────────────────────────────────────────────────────────────────
+// ETHICAL FRAMING SYSTEM
+// Raw probabilities from the model are NOT shown to users.
+// Instead we map them to wellness-framed performance tiers.
+// The language never implies diagnosis, disease presence, or clinical risk.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DOMAIN_META = {
+  Speech: {
+    icon: "🎙️", color: "#f87171", bg: "rgba(248,113,113,0.08)",
+    description: "Measures speech rhythm, word-finding speed, and articulation consistency.",
+    low: "Your speech fluency patterns are within a healthy range for your age group.",
+    mid: "Some minor variation detected in speech rhythm. This is common and may reflect fatigue or test conditions.",
+    concern: "Speech rhythm showed some patterns worth monitoring. Consider retaking after rest.",
   },
-  dementia: {
-    label: "Dementia", icon: "🌀",
-    color: T.amber, glow: "rgba(245,158,11,0.2)",
-    primaryFeatures: ["Processing speed", "Attention stability", "Executive control"],
-    description: "Broad cognitive decline marker — attention, processing speed, and executive function.",
+  Memory: {
+    icon: "🧠", color: "#34d399", bg: "rgba(52,211,153,0.08)",
+    description: "Assesses short-term recall accuracy, recall speed, and word-order retention.",
+    low: "Your memory recall performance looks great — consistent with healthy cognitive function.",
+    mid: "Memory recall was slightly variable. This is very common and often reflects attention during the test.",
+    concern: "Memory recall showed some variability. Sleep, stress, and hydration significantly affect this score.",
   },
-  parkinsons: {
-    label: "Parkinson's", icon: "🎯",
-    color: T.blue, glow: "rgba(96,165,250,0.2)",
-    primaryFeatures: ["Motor rhythm", "Reaction consistency", "Initiation delay"],
-    description: "Motor timing irregularity, bradykinesia signals, and rhythmic tapping consistency.",
+  Reaction: {
+    icon: "⚡", color: "#60a5fa", bg: "rgba(96,165,250,0.08)",
+    description: "Tracks cognitive processing speed and attention consistency across trials.",
+    low: "Your reaction speed and consistency are in a healthy range.",
+    mid: "Slight variability in reaction speed was detected. Very common during a first assessment.",
+    concern: "Reaction speed was more variable than average. This can reflect fatigue or unfamiliarity with the test.",
+  },
+  Executive: {
+    icon: "🎯", color: "#a78bfa", bg: "rgba(167,139,250,0.08)",
+    description: "Evaluates inhibitory control and cognitive flexibility via the Stroop task.",
+    low: "Your executive function score reflects strong cognitive flexibility.",
+    mid: "Some interference effects were detected in the Stroop test — this is normal for first-time takers.",
+    concern: "Stroop test showed some difficulty with interference control. This commonly improves with practice.",
+  },
+  Motor: {
+    icon: "🥁", color: "#fbbf24", bg: "rgba(251,191,36,0.08)",
+    description: "Measures rhythmic motor consistency through the tapping test.",
+    low: "Your motor rhythm consistency is excellent.",
+    mid: "Minor rhythm variability detected. This can reflect natural hand fatigue.",
+    concern: "Tapping rhythm was more variable than typical. Retesting after a short break often helps.",
   },
 };
 
-function riskColor(level) {
-  return level === "Low" ? T.green : level === "Moderate" ? T.amber : T.red;
+function getScoreTier(score) {
+  if (score >= 72) return "low";
+  if (score >= 52) return "mid";
+  return "concern";
 }
 
-function ProbBar({ prob, color }) {
-  const pct = Math.round(prob * 100);
+function getWellnessLabel(composite) {
+  if (composite < 30) return { label: "Performing Well", color: "#34d399", emoji: "✦", sub: "Your cognitive performance today is in a healthy range." };
+  if (composite < 55) return { label: "Mostly Typical", color: "#34d399", emoji: "◎", sub: "Most indicators are within typical ranges for your age group." };
+  if (composite < 70) return { label: "Some Variation", color: "#fbbf24", emoji: "◑", sub: "A few areas showed variation — this is common and often reflects test conditions." };
+  return { label: "Worth Monitoring", color: "#f87171", emoji: "△", sub: "Some patterns may benefit from professional attention. Please consult a neurologist." };
+}
+
+// Remap composite risk (higher = more risk in backend) to a wellness score (higher = better for display)
+function toWellnessScore(composite) {
+  return Math.round(Math.max(0, Math.min(100, 100 - composite)));
+}
+
+// ── Radar Chart (SVG) ─────────────────────────────────────────────────────────
+function RadarChart({ scores }) {
+  const cx = 140, cy = 140, r = 100;
+  const keys = Object.keys(scores);
+  const n = keys.length;
+  const angleStep = (2 * Math.PI) / n;
+
+  function polar(val, i, radius) {
+    const angle = angleStep * i - Math.PI / 2;
+    return {
+      x: cx + radius * Math.cos(angle) * (val / 100),
+      y: cy + radius * Math.sin(angle) * (val / 100),
+    };
+  }
+  function grid(i, radius) {
+    const angle = angleStep * i - Math.PI / 2;
+    return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+  }
+
+  const dataPoints = keys.map((k, i) => polar(scores[k], i, r));
+  const polyPoints = dataPoints.map(p => `${p.x},${p.y}`).join(" ");
+
+  const gridLevels = [25, 50, 75, 100];
+
   return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontSize: 12, color: T.creamFaint }}>Probability</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color }}>{pct}%</span>
+    <svg width="280" height="280" style={{ overflow: "visible" }}>
+      {/* Grid rings */}
+      {gridLevels.map(lvl => (
+        <polygon key={lvl}
+          points={keys.map((_, i) => { const g = grid(i, r * lvl / 100); return `${g.x},${g.y}`; }).join(" ")}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1"
+        />
+      ))}
+      {/* Axis lines */}
+      {keys.map((_, i) => {
+        const g = grid(i, r);
+        return <line key={i} x1={cx} y1={cy} x2={g.x} y2={g.y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />;
+      })}
+      {/* Data polygon */}
+      <polygon points={polyPoints}
+        fill="rgba(96,165,250,0.12)" stroke="#60a5fa" strokeWidth="2"
+        style={{ filter: "drop-shadow(0 0 8px rgba(96,165,250,0.3))" }}
+      />
+      {/* Data points */}
+      {dataPoints.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="4" fill="#60a5fa" stroke="#0a0a0a" strokeWidth="2" />
+      ))}
+      {/* Labels */}
+      {keys.map((k, i) => {
+        const g = grid(i, r + 22);
+        return (
+          <text key={k} x={g.x} y={g.y} textAnchor="middle" dominantBaseline="middle"
+            fontSize="11" fill="rgba(240,236,227,0.6)" fontFamily="DM Sans, sans-serif">
+            {k}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Domain Score Card ─────────────────────────────────────────────────────────
+function DomainCard({ label, score, expanded, onToggle }) {
+  const meta = DOMAIN_META[label];
+  const tier = getScoreTier(score);
+  const tierMsg = meta[tier];
+  const tierColor = tier === "low" ? "#34d399" : tier === "mid" ? "#fbbf24" : "#f87171";
+  const tierLabel = tier === "low" ? "Healthy range" : tier === "mid" ? "Within variation" : "Worth monitoring";
+
+  return (
+    <div
+      onClick={onToggle}
+      style={{
+        background: "#141414", borderRadius: 16, padding: "20px 22px",
+        border: `1px solid ${expanded ? meta.color + "30" : "rgba(255,255,255,0.06)"}`,
+        cursor: "pointer", transition: "all 0.25s",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, background: meta.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19 }}>{meta.icon}</div>
+          <div>
+            <div style={{ fontWeight: 600, color: "#f0ece3", fontSize: 15 }}>{label}</div>
+            <div style={{ fontSize: 11, color: tierColor, marginTop: 2, fontWeight: 600 }}>{tierLabel}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: meta.color, fontFamily: "'Instrument Serif', serif" }}>{score}</div>
+            <div style={{ fontSize: 10, color: "rgba(240,236,227,0.35)", textTransform: "uppercase", letterSpacing: 0.6 }}>/ 100</div>
+          </div>
+          <div style={{ color: "rgba(240,236,227,0.3)", fontSize: 16, transition: "transform 0.2s", transform: expanded ? "rotate(90deg)" : "none" }}>›</div>
+        </div>
       </div>
-      <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.07)" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 4, boxShadow: `0 0 10px ${color}66`, transition: "width 1s ease" }} />
+
+      {/* Progress bar */}
+      <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.06)", marginTop: 16 }}>
+        <div style={{ height: "100%", width: `${score}%`, background: `linear-gradient(90deg, ${meta.color}88, ${meta.color})`, borderRadius: 2, transition: "width 0.8s ease" }} />
+      </div>
+
+      {/* Expanded explanation */}
+      {expanded && (
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <p style={{ fontSize: 13, color: "rgba(240,236,227,0.65)", lineHeight: 1.7, marginBottom: 10 }}>{tierMsg}</p>
+          <p style={{ fontSize: 12, color: "rgba(240,236,227,0.35)", lineHeight: 1.6 }}>
+            <em>What this measures:</em> {meta.description}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Screening Context Card ─────────────────────────────────────────────────────
+// Replaces the disease-risk cards entirely with responsible framing
+function ScreeningContextCard({ riskLevels, compositeRisk }) {
+  const areas = [
+    {
+      name: "Memory & Recall",
+      icon: "🧩",
+      color: "#a78bfa",
+      level: riskLevels?.alzheimers,
+      goodMsg: "Memory recall and word-finding patterns appear consistent with healthy function.",
+      watchMsg: "Memory recall showed some variability. Many factors affect this — sleep, stress, hydration.",
+      monitorMsg: "Memory performance was below typical ranges. Lifestyle factors often explain this. Consult a doctor if persistent.",
+    },
+    {
+      name: "Attention & Processing",
+      icon: "🌀",
+      color: "#fbbf24",
+      level: riskLevels?.dementia,
+      goodMsg: "Attention and processing speed patterns appear typical for your age group.",
+      watchMsg: "Some variability in processing speed was detected. This is very common during first assessments.",
+      monitorMsg: "Processing speed and attention were more variable than typical. Consider a follow-up assessment.",
+    },
+    {
+      name: "Motor Coordination",
+      icon: "🎯",
+      color: "#60a5fa",
+      level: riskLevels?.parkinsons,
+      goodMsg: "Motor rhythm and coordination patterns are within a healthy range.",
+      watchMsg: "Minor motor rhythm variability detected. This is often related to hand fatigue or test unfamiliarity.",
+      monitorMsg: "Motor rhythm was more irregular than typical. Retesting after rest is recommended.",
+    },
+  ];
+
+  function getMsg(a) {
+    if (a.level === "High") return a.monitorMsg;
+    if (a.level === "Moderate") return a.watchMsg;
+    return a.goodMsg;
+  }
+  function getStatus(level) {
+    if (level === "High") return { label: "Monitor", color: "#f87171" };
+    if (level === "Moderate") return { label: "Some Variation", color: "#fbbf24" };
+    return { label: "Typical Range", color: "#34d399" };
+  }
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      {/* Critical framing header */}
+      <div style={{
+        background: "rgba(96,165,250,0.05)", border: "1px solid rgba(96,165,250,0.15)",
+        borderRadius: 16, padding: "18px 22px", marginBottom: 16,
+        display: "flex", gap: 14, alignItems: "flex-start",
+      }}>
+        <span style={{ fontSize: 20 }}>ℹ️</span>
+        <div>
+          <div style={{ fontWeight: 700, color: "#60a5fa", fontSize: 13, marginBottom: 6 }}>About These Results</div>
+          <p style={{ fontSize: 13, color: "rgba(240,236,227,0.6)", lineHeight: 1.7 }}>
+            The sections below reflect <strong style={{ color: "#f0ece3" }}>performance patterns</strong> in specific cognitive areas — 
+            not medical diagnoses. These patterns are influenced by sleep, stress, fatigue, familiarity with testing, and many other factors. 
+            <strong style={{ color: "#f0ece3" }}> A single screening cannot diagnose any condition.</strong>
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+        {areas.map((a) => {
+          const status = getStatus(a.level);
+          return (
+            <div key={a.name} style={{
+              background: "#141414", borderRadius: 16, padding: "22px 20px",
+              border: `1px solid ${a.color}18`,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: `${a.color}12`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+                  {a.icon}
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20,
+                  background: `${status.color}12`, color: status.color,
+                  border: `1px solid ${status.color}25`,
+                }}>
+                  {status.label}
+                </span>
+              </div>
+              <div style={{ fontWeight: 700, color: "#f0ece3", fontSize: 14, marginBottom: 8 }}>{a.name}</div>
+              <p style={{ fontSize: 12, color: "rgba(240,236,227,0.55)", lineHeight: 1.65 }}>{getMsg(a)}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Hard disclaimer */}
+      <div style={{
+        marginTop: 14, padding: "12px 18px", borderRadius: 12,
+        background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.15)",
+        fontSize: 12, color: "rgba(251,191,36,0.8)", lineHeight: 1.6,
+      }}>
+        ⚠️ <strong>These labels do not indicate the presence of any disease.</strong> They describe today's test performance only. 
+        Results can vary significantly based on sleep, mood, and test familiarity. Always consult a licensed neurologist for medical evaluation.
       </div>
     </div>
   );
 }
 
-function DiseaseCard({ diseaseKey, prob, level }) {
-  const meta  = DISEASE_META[diseaseKey];
-  const lvlColor = riskColor(level);
+// ── Recommendations ───────────────────────────────────────────────────────────
+function Recommendations({ scores, wellnessLevel, profile }) {
+  const recs = [];
+  const mem = scores.find(d => d.label === "Memory")?.score ?? 100;
+  const mot = scores.find(d => d.label === "Motor")?.score ?? 100;
+  const rea = scores.find(d => d.label === "Reaction")?.score ?? 100;
+
+  recs.push({ icon: "🏃", title: "Stay Active", tip: "30 minutes of aerobic exercise 5× per week is the single most evidence-backed way to support long-term brain health." });
+  recs.push({ icon: "😴", title: "Prioritise Sleep", tip: "7–9 hours of quality sleep per night is critical for memory consolidation and cognitive performance." });
+
+  if (mem < 70) recs.push({ icon: "🧩", title: "Memory Exercises", tip: "Spaced-repetition exercises, reading, and mentally stimulating activities help maintain memory health." });
+  if (mot < 70) recs.push({ icon: "✋", title: "Fine Motor Practice", tip: "Activities like playing an instrument, drawing, or typing exercises can support motor coordination." });
+  if (rea < 70) recs.push({ icon: "⚡", title: "Cognitive Games", tip: "Reaction-based games and dual-task exercises can help with processing speed over time." });
+
+  recs.push({ icon: "🥗", title: "Brain-Healthy Diet", tip: "The MIND diet — rich in leafy greens, berries, nuts, and fish — is associated with lower cognitive decline risk." });
+
+  if (wellnessLevel >= 3) {
+    recs.push({ icon: "🩺", title: "See a Specialist", tip: "Some areas showed patterns that may benefit from professional evaluation. Consider consulting a neurologist — it's always better to check." });
+  }
+
+  if (profile?.familyHistory) {
+    recs.push({ icon: "🧬", title: "Track Over Time", tip: "With a family history, regular monitoring every 3–6 months helps catch meaningful changes early. Discuss this with your doctor." });
+  }
 
   return (
-    <DarkCard style={{ padding: 28, border: `1px solid ${meta.color}25`, background: `linear-gradient(135deg, #161616, #111)` }} hover={false}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: `${meta.color}15`, border: `1px solid ${meta.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
-            {meta.icon}
+    <div style={{ background: "#141414", borderRadius: 18, padding: 28, marginBottom: 20, border: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ fontWeight: 700, color: "#f0ece3", fontSize: 15, marginBottom: 4 }}>📌 Wellness Recommendations</div>
+      <p style={{ fontSize: 13, color: "rgba(240,236,227,0.45)", marginBottom: 20 }}>Personalised to your performance profile today.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {recs.slice(0, 6).map((r, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>{r.icon}</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#f0ece3", marginBottom: 4 }}>{r.title}</div>
+              <div style={{ fontSize: 12, color: "rgba(240,236,227,0.5)", lineHeight: 1.6 }}>{r.tip}</div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontWeight: 700, color: T.cream, fontSize: 17 }}>{meta.label}</div>
-            <div style={{ fontSize: 11, color: T.creamFaint, marginTop: 2 }}>Behavioral screening</div>
-          </div>
-        </div>
-        <span style={{ background: `${lvlColor}18`, color: lvlColor, padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: 0.5, border: `1px solid ${lvlColor}33` }}>
-          {level} Risk
-        </span>
+        ))}
       </div>
-
-      {/* Big probability */}
-      <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 64, color: meta.color, lineHeight: 1, textShadow: `0 0 30px ${meta.glow}` }}>
-          {Math.round(prob * 100)}<span style={{ fontSize: 24, color: T.creamFaint }}>%</span>
-        </div>
-        <div style={{ color: T.creamFaint, fontSize: 13, marginTop: 4 }}>probability signal</div>
-      </div>
-
-      <ProbBar prob={prob} color={meta.color} />
-
-      <div style={{ marginTop: 20, padding: "14px 0", borderTop: `1px solid ${T.cardBorder}` }}>
-        <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 8 }}>Primary signals</div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {meta.primaryFeatures.map(f => (
-            <span key={f} style={{ background: `${meta.color}12`, color: meta.color, padding: "3px 10px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{f}</span>
-          ))}
-        </div>
-        <p style={{ color: T.creamFaint, fontSize: 12, lineHeight: 1.65, marginTop: 10 }}>{meta.description}</p>
-      </div>
-    </DarkCard>
+    </div>
   );
 }
 
+// ── Report Download ───────────────────────────────────────────────────────────
+function downloadReport(domainScores, wellness, profile) {
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const lines = [
+    "═══════════════════════════════════════════════════════",
+    "           NEUROAID — COGNITIVE WELLNESS SUMMARY        ",
+    "═══════════════════════════════════════════════════════",
+    `Date: ${today}`,
+    `Age: ${profile?.age || "Not provided"}`,
+    "",
+    "⚠️  IMPORTANT DISCLAIMER",
+    "   NeuroAid is a behavioral screening tool ONLY.",
+    "   This report does NOT constitute a medical diagnosis.",
+    "   Results are influenced by sleep, stress, fatigue,",
+    "   and familiarity with testing. Always consult a",
+    "   qualified neurologist for medical evaluation.",
+    "",
+    "───────────────────────────────────────────────────────",
+    "OVERALL WELLNESS INDICATOR",
+    "───────────────────────────────────────────────────────",
+    `Today's Status: ${wellness.label}`,
+    `Summary: ${wellness.sub}`,
+    "",
+    "───────────────────────────────────────────────────────",
+    "COGNITIVE DOMAIN PERFORMANCE",
+    "───────────────────────────────────────────────────────",
+    ...domainScores.map(d => `${d.label.padEnd(12)}: ${d.score}/100  (${getScoreTier(d.score) === "low" ? "Healthy range" : getScoreTier(d.score) === "mid" ? "Within variation" : "Worth monitoring"})`),
+    "",
+    "───────────────────────────────────────────────────────",
+    "WHAT THESE SCORES MEAN",
+    "───────────────────────────────────────────────────────",
+    "70–100  Healthy range — performance within expected norms",
+    "50–69   Within variation — common, often reflects test conditions",
+    "0–49    Worth monitoring — consider retesting or consulting a doctor",
+    "",
+    "───────────────────────────────────────────────────────",
+    "NEXT STEPS",
+    "───────────────────────────────────────────────────────",
+    "• Retake this assessment in 30 days to track changes",
+    "• Ensure 7–9 hours of sleep before retesting",
+    "• Maintain physical exercise and a brain-healthy diet",
+    "• Consult a neurologist if you have persistent concerns",
+    "",
+    "This report is for personal awareness only.",
+    "NeuroAid — Not a diagnostic device.",
+    "═══════════════════════════════════════════════════════",
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `neuroaid-wellness-${new Date().toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Main Results Page ─────────────────────────────────────────────────────────
 export default function ResultsPage({ setPage }) {
-  const { apiResult, profile, error } = useAssessment();
-  if (!apiResult || typeof apiResult !== 'object' || Object.keys(apiResult).length === 0) {
+  const { apiResult, profile, error, reset } = useAssessment();
+  const [expandedDomain, setExpandedDomain] = useState(null);
+  const [showRaw, setShowRaw] = useState(false);
+
+  if (!apiResult || typeof apiResult !== "object" || Object.keys(apiResult).length === 0) {
     return (
-      <div style={{ color: T.red, background: T.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-        <div>
-          <h2>Assessment Results Not Found</h2>
-          <p>{error ? error : 'No results available. Please complete all tests and submit your assessment.'}</p>
-          <button style={{ marginTop: 24, padding: '12px 24px', borderRadius: 8, background: T.red, color: T.cream, fontWeight: 600, fontSize: 16 }} onClick={() => setPage('assessments')}>Go Back</button>
+      <div style={{ color: T.red, background: T.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+        <div style={{ textAlign: "center", maxWidth: 400 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🧠</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',serif", color: "#f0ece3", marginBottom: 12 }}>No Results Yet</h2>
+          <p style={{ color: "rgba(240,236,227,0.5)", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+            {error || "Complete all core tests and submit to see your results."}
+          </p>
+          <button style={{ padding: "12px 28px", borderRadius: 12, background: T.red, color: "white", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }} onClick={() => setPage("assessments")}>
+            Go to Assessments →
+          </button>
         </div>
       </div>
     );
   }
+
   const r = apiResult;
-  const fv      = r.feature_vector;
-  const today   = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const userAge = profile?.age ? parseInt(profile.age, 10) : null;
-  const isLive = !!apiResult;
-
-  // Extract composite risk values
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const compositeRisk = r.composite_risk_score ?? 0;
-  const riskLevel = r.composite_risk_level ?? "Low";
-  const ciLower = r.confidence_lower ?? 0;
-  const ciUpper = r.confidence_upper ?? 100;
-  const uncertainty = r.model_uncertainty ?? 0;
+  const wellnessScore = toWellnessScore(compositeRisk);
+  const wellness = getWellnessLabel(compositeRisk);
 
-  const riskColorMap = {
-    "Low": T.green,
-    "Mild Concern": T.amber,
-    "Moderate Risk": "#f97316",  // orange
-    "High Risk": T.red,
-  };
-
-  const getRiskColor = (level) => riskColorMap[level] || T.green;
+  // Map wellness label to numeric level for recommendations
+  const wellnessLevel = compositeRisk < 30 ? 0 : compositeRisk < 55 ? 1 : compositeRisk < 70 ? 2 : 3;
 
   const domainScores = [
-    { label: "Speech",    score: Math.round(r.speech_score),    icon: "🎙️", color: T.red    },
-    { label: "Memory",    score: Math.round(r.memory_score),    icon: "🧠", color: T.green  },
-    { label: "Reaction",  score: Math.round(r.reaction_score),  icon: "⚡", color: T.blue   },
-    { label: "Executive", score: Math.round(r.executive_score), icon: "🎨", color: "#a78bfa" },
-    { label: "Motor",     score: Math.round(r.motor_score),     icon: "🥁", color: T.amber  },
+    { label: "Speech",    score: Math.max(0, Math.min(100, Math.round(r.speech_score))) },
+    { label: "Memory",    score: Math.max(0, Math.min(100, Math.round(r.memory_score))) },
+    { label: "Reaction",  score: Math.max(0, Math.min(100, Math.round(r.reaction_score))) },
+    { label: "Executive", score: Math.max(0, Math.min(100, Math.round(r.executive_score))) },
+    { label: "Motor",     score: Math.max(0, Math.min(100, Math.round(r.motor_score))) },
   ];
 
+  const radarData = Object.fromEntries(domainScores.map(d => [d.label, d.score]));
+
   return (
-    <div>
-      <div style={{ marginBottom: 36 }}>
-        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 36, color: T.cream, letterSpacing: -1, marginBottom: 6 }}>Assessment Results</h1>
-        <p style={{ color: T.creamFaint, fontSize: 14 }}>{today} · {isLive ? "Live 18-feature analysis" : "Demo data — complete tests for real results"}</p>
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+      {/* ── Header ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 11, color: "rgba(240,236,227,0.35)", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 10 }}>
+          {today} · Cognitive Wellness Assessment
+        </div>
+        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 34, color: "#f0ece3", letterSpacing: -1, marginBottom: 8, fontWeight: 400 }}>
+          Your Results
+        </h1>
+        <p style={{ color: "rgba(240,236,227,0.45)", fontSize: 14, lineHeight: 1.6, maxWidth: 540 }}>
+          These results reflect your cognitive performance <em>today</em>. Many factors influence scores — including sleep, 
+          stress, and test familiarity. Results are not a diagnosis.
+        </p>
       </div>
 
-      {/* Age-normalized results messaging */}
-      {userAge && (
-        <div style={{ marginBottom: 16, color: T.creamFaint, fontSize: 13 }}>
-          <strong>Results are age-normalized:</strong> All scores are compared to typical values for age {userAge}.
-        </div>
-      )}
-
-      {/* Composite risk score with confidence interval */}
-      <DarkCard style={{ padding: 36, marginBottom: 24, background: "linear-gradient(135deg,#161010,#100e0e)", border: `1px solid ${getRiskColor(riskLevel)}33` }} hover={false}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 12 }}>Composite Cognitive Risk Score</div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 20 }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: 88, color: getRiskColor(riskLevel), lineHeight: 1 }}>{Math.round(compositeRisk)}</span>
-              <span style={{ color: T.creamFaint, fontSize: 20, paddingBottom: 12 }}>/100</span>
-            </div>
-            
-            {/* Risk level badge */}
-            <div style={{ marginBottom: 16 }}>
-              <span style={{ 
-                background: `${getRiskColor(riskLevel)}18`, 
-                color: getRiskColor(riskLevel), 
-                padding: "6px 16px", 
-                borderRadius: 20, 
-                fontSize: 13, 
-                fontWeight: 700, 
-                letterSpacing: 0.5, 
-                border: `1px solid ${getRiskColor(riskLevel)}33` 
-              }}>
-                ➜ {riskLevel}
-              </span>
-            </div>
-
-            {/* Confidence interval */}
-            <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${T.cardBorder}` }}>
-              <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 0.5, marginBottom: 6 }}>95% Confidence Interval</div>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 16, color: T.cream }}>
-                {Math.round(ciLower)} – {Math.round(ciUpper)} (±{Math.round(uncertainty)}%)
-              </div>
-              <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.05)", marginTop: 8, overflow: "hidden" }}>
-                <div style={{
-                  height: "100%",
-                  width: `${((ciUpper - ciLower) / 100) * 100}%`,
-                  marginLeft: `${(ciLower / 100) * 100}%`,
-                  background: `linear-gradient(90deg, ${getRiskColor(riskLevel)}44, ${getRiskColor(riskLevel)}22)`,
-                  borderRadius: 3
-                }} />
-              </div>
-            </div>
-
-            {/* Model uncertainty note */}
-            <div style={{ fontSize: 12, color: T.creamFaint, lineHeight: 1.6 }}>
-              <strong>Note:</strong> {
-                uncertainty < 12 ? "High confidence in this assessment." :
-                uncertainty < 16 ? "Moderate confidence. Results in borderline range." :
-                "High uncertainty — consider retesting for confirmation."
-              }
-              {riskLevel === "Mild Concern" && " Score in borderline range (50–69) = Model uncertainty is expected."}
-            </div>
+      {/* ── Wellness Summary Card ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #141414, #111)",
+        borderRadius: 20, padding: "32px 36px", marginBottom: 20,
+        border: `1px solid ${wellness.color}20`,
+        display: "flex", gap: 32, alignItems: "center",
+      }}>
+        {/* Big wellness indicator */}
+        <div style={{ textAlign: "center", flexShrink: 0 }}>
+          <div style={{
+            width: 120, height: 120, borderRadius: "50%",
+            background: `radial-gradient(circle, ${wellness.color}18 0%, transparent 70%)`,
+            border: `2px solid ${wellness.color}30`,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          }}>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 42, color: wellness.color, lineHeight: 1 }}>{wellnessScore}</div>
+            <div style={{ fontSize: 10, color: "rgba(240,236,227,0.4)", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 2 }}>score</div>
           </div>
-          <MiniChart data={[58, 61, 64, 60, 67, 70, compositeRisk]} color={getRiskColor(riskLevel)} height={80} />
+          <div style={{ marginTop: 10, fontSize: 11, color: wellness.color, fontWeight: 700 }}>{wellness.emoji} {wellness.label}</div>
         </div>
 
-        {/* Domain mini scores */}
-        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-          {domainScores.map(d => (
-            <div key={d.label} style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px" }}>
-              <div style={{ fontSize: 13, marginBottom: 4 }}>{d.icon}</div>
-              <div style={{ fontWeight: 700, color: d.color, fontSize: 20 }}>{d.score}</div>
-              <div style={{ fontSize: 10, color: T.creamFaint, marginTop: 2 }}>{d.label}</div>
-              <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.07)", marginTop: 6 }}>
-                <div style={{ height: "100%", width: `${d.score}%`, background: d.color, borderRadius: 2 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </DarkCard>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: "rgba(240,236,227,0.35)", letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 8 }}>Today's Snapshot</div>
+          <p style={{ color: "#f0ece3", fontSize: 15, lineHeight: 1.7, marginBottom: 16 }}>{wellness.sub}</p>
 
-      {/* Disease cards */}
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>Disease-Specific Risk Signals</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 24 }}>
-          <DiseaseCard diseaseKey="alzheimers" prob={r.alzheimers_risk} level={r.risk_levels.alzheimers} />
-          <DiseaseCard diseaseKey="dementia"   prob={r.dementia_risk}   level={r.risk_levels.dementia}   />
-          <DiseaseCard diseaseKey="parkinsons" prob={r.parkinsons_risk} level={r.risk_levels.parkinsons} />
-        </div>
-        {/* Uncertainty note for borderline scores */}
-        {r.composite_risk_level === "Mild Concern" && (
-          <div style={{ color: T.amber, fontSize: 13, marginTop: 8 }}>
-            <strong>Note:</strong> Your score is in the borderline range (50–69). Model uncertainty is expected. Consider retesting or clinical follow-up if symptoms persist.
-          </div>
-        )}
-      </div>
-
-      {/* Feature vector */}
-      {fv && (
-        <DarkCard style={{ padding: 28, marginBottom: 20 }} hover={false}>
-          <div style={{ fontWeight: 700, color: T.cream, fontSize: 15, marginBottom: 16 }}>📊 18-Feature Behavioral Vector</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
-            {[
-              { k: "WPM",          v: fv.wpm,                              group: "speech"    },
-              { k: "Speed Dev.",   v: fv.speed_deviation,                  group: "speech"    },
-              { k: "Speech Var.",  v: fv.speech_variability,               group: "speech"    },
-              { k: "Pause Ratio",  v: `${(fv.pause_ratio * 100).toFixed(1)}%`, group: "speech" },
-              { k: "Start Delay",  v: `${fv.speech_start_delay}s`,         group: "speech"    },
-              { k: "Imm. Recall",  v: `${fv.immediate_recall_accuracy.toFixed(1)}%`, group: "memory" },
-              { k: "Del. Recall",  v: `${fv.delayed_recall_accuracy.toFixed(1)}%`,   group: "memory" },
-              { k: "Intrusions",   v: fv.intrusion_count,                  group: "memory"    },
-              { k: "Rec. Latency", v: `${fv.recall_latency}s`,             group: "memory"    },
-              { k: "Order Match",  v: `${(fv.order_match_ratio * 100).toFixed(0)}%`, group: "memory" },
-              { k: "Mean RT",      v: `${Math.round(fv.mean_rt)}ms`,       group: "reaction"  },
-              { k: "Std RT",       v: `±${Math.round(fv.std_rt)}ms`,       group: "reaction"  },
-              { k: "Min RT",       v: `${Math.round(fv.min_rt)}ms`,        group: "reaction"  },
-              { k: "Drift",        v: `${fv.reaction_drift > 0 ? "+" : ""}${Math.round(fv.reaction_drift)}ms`, group: "reaction" },
-              { k: "Misses",       v: fv.miss_count,                       group: "reaction"  },
-              { k: "Stroop Err",   v: `${(fv.stroop_error_rate * 100).toFixed(0)}%`, group: "exec" },
-              { k: "Stroop RT",    v: `${Math.round(fv.stroop_rt)}ms`,     group: "exec"      },
-              { k: "Tap Std",      v: `${Math.round(fv.tap_interval_std)}ms`, group: "motor"   },
-            ].map(m => {
-              const groupColor = { speech: T.red, memory: T.green, reaction: T.blue, exec: "#a78bfa", motor: T.amber }[m.group];
+          {/* Domain mini scores */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {domainScores.map(d => {
+              const meta = DOMAIN_META[d.label];
+              const tier = getScoreTier(d.score);
+              const tc = tier === "low" ? "#34d399" : tier === "mid" ? "#fbbf24" : "#f87171";
               return (
-                <div key={m.k} style={{ background: T.bg3, borderRadius: 10, padding: "10px 12px", borderTop: `2px solid ${groupColor}33` }}>
-                  <div style={{ fontSize: 10, color: T.creamFaint, marginBottom: 3, textTransform: "uppercase", letterSpacing: 0.4 }}>{m.k}</div>
-                  <div style={{ fontWeight: 700, color: T.cream, fontSize: 15 }}>{m.v}</div>
+                <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                  <span style={{ fontSize: 14 }}>{meta.icon}</span>
+                  <span style={{ fontSize: 12, color: "#f0ece3", fontWeight: 600 }}>{d.score}</span>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: tc }} />
                 </div>
               );
             })}
           </div>
-          {r.attention_variability_index != null && (
-            <div style={{ marginTop: 14, color: T.creamFaint, fontSize: 12 }}>
-              Attention Variability Index (std_rt / mean_rt): <strong style={{ color: T.cream }}>{r.attention_variability_index}</strong>
+        </div>
+
+        {/* Radar chart */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <RadarChart scores={radarData} />
+        </div>
+      </div>
+
+      {/* ── Key reminder banner ── */}
+      <div style={{
+        background: "rgba(96,165,250,0.05)", borderRadius: 14,
+        border: "1px solid rgba(96,165,250,0.12)",
+        padding: "14px 20px", marginBottom: 24,
+        display: "flex", gap: 12, alignItems: "center",
+      }}>
+        <span style={{ fontSize: 18 }}>🔬</span>
+        <p style={{ fontSize: 13, color: "rgba(240,236,227,0.6)", lineHeight: 1.6 }}>
+          <strong style={{ color: "#60a5fa" }}>Remember:</strong> This is a <strong style={{ color: "#f0ece3" }}>behavioral screening tool</strong>, not a clinical test. 
+          It cannot diagnose Alzheimer's, dementia, Parkinson's, or any other condition. 
+          Scores reflect performance patterns only — consult a doctor for any medical concerns.
+        </p>
+      </div>
+
+      {/* ── Domain Breakdown ── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, color: "rgba(240,236,227,0.35)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>
+          Performance by Domain — click to expand
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {domainScores.map(d => (
+            <DomainCard
+              key={d.label} label={d.label} score={d.score}
+              expanded={expandedDomain === d.label}
+              onToggle={() => setExpandedDomain(expandedDomain === d.label ? null : d.label)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Cognitive Area Context (replaces disease risk cards) ── */}
+      <div style={{ fontSize: 11, color: "rgba(240,236,227,0.35)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>
+        Cognitive Area Overview
+      </div>
+      <ScreeningContextCard riskLevels={r.risk_levels} compositeRisk={compositeRisk} />
+
+      {/* ── Recommendations ── */}
+      <Recommendations scores={domainScores} wellnessLevel={wellnessLevel} profile={profile} />
+
+      {/* ── Full disclaimer ── */}
+      <div style={{
+        background: "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.15)",
+        borderRadius: 14, padding: "18px 22px", marginBottom: 24,
+      }}>
+        <div style={{ fontWeight: 700, color: "#fbbf24", fontSize: 13, marginBottom: 8 }}>⚕️ Medical Disclaimer</div>
+        <p style={{ color: "rgba(251,191,36,0.7)", fontSize: 12, lineHeight: 1.75 }}>
+          NeuroAid is a behavioral cognitive screening tool for personal awareness only. It does NOT diagnose, 
+          predict, or indicate the presence of any neurological condition including Alzheimer's disease, dementia, 
+          Parkinson's disease, or any other disorder. Results are influenced by many non-medical factors including 
+          sleep quality, stress levels, familiarity with digital testing, and current mood. A score in any range 
+          is NOT a cause for alarm. Always consult a qualified neurologist or healthcare professional for 
+          medical evaluation and diagnosis.
+        </p>
+      </div>
+
+      {/* ── Raw data toggle (for researchers/developers) ── */}
+      <div style={{ marginBottom: 24 }}>
+        <button
+          onClick={() => setShowRaw(!showRaw)}
+          style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "8px 16px", color: "rgba(240,236,227,0.4)", fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}
+        >
+          {showRaw ? "Hide" : "Show"} raw feature data (for technical reference)
+        </button>
+        {showRaw && r.feature_vector && (
+          <div style={{ marginTop: 14, background: "#141414", borderRadius: 14, padding: 20, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ fontSize: 11, color: "rgba(240,236,227,0.3)", marginBottom: 12 }}>
+              Raw 18-feature behavioral vector — for technical/research reference only. These values are inputs to the scoring model and do not directly indicate health status.
             </div>
-          )}
-        </DarkCard>
-      )}
-
-      {/* Disclaimer */}
-      <div style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 14, padding: "16px 20px", marginBottom: 20 }}>
-        <p style={{ color: T.amber, fontSize: 13, lineHeight: 1.7 }}>{r.disclaimer}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+              {[
+                { k: "WPM", v: r.feature_vector.wpm },
+                { k: "Speed Dev", v: r.feature_vector.speed_deviation },
+                { k: "Speech Var", v: r.feature_vector.speech_variability },
+                { k: "Pause Ratio", v: `${(r.feature_vector.pause_ratio * 100).toFixed(1)}%` },
+                { k: "Start Delay", v: `${r.feature_vector.speech_start_delay}s` },
+                { k: "Imm. Recall", v: `${r.feature_vector.immediate_recall_accuracy?.toFixed(1)}%` },
+                { k: "Del. Recall", v: `${r.feature_vector.delayed_recall_accuracy?.toFixed(1)}%` },
+                { k: "Intrusions", v: r.feature_vector.intrusion_count },
+                { k: "Rec. Latency", v: `${r.feature_vector.recall_latency}s` },
+                { k: "Order Match", v: `${(r.feature_vector.order_match_ratio * 100).toFixed(0)}%` },
+                { k: "Mean RT", v: `${Math.round(r.feature_vector.mean_rt)}ms` },
+                { k: "Std RT", v: `±${Math.round(r.feature_vector.std_rt)}ms` },
+                { k: "Min RT", v: `${Math.round(r.feature_vector.min_rt)}ms` },
+                { k: "Drift", v: `${Math.round(r.feature_vector.reaction_drift)}ms` },
+                { k: "Misses", v: r.feature_vector.miss_count },
+                { k: "Stroop Err", v: `${(r.feature_vector.stroop_error_rate * 100).toFixed(0)}%` },
+                { k: "Stroop RT", v: `${Math.round(r.feature_vector.stroop_rt)}ms` },
+                { k: "Tap Std", v: `${Math.round(r.feature_vector.tap_interval_std)}ms` },
+              ].map(m => (
+                <div key={m.k} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+                  <div style={{ fontSize: 9, color: "rgba(240,236,227,0.3)", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 3 }}>{m.k}</div>
+                  <div style={{ fontWeight: 600, color: "rgba(240,236,227,0.7)", fontSize: 13 }}>{m.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* ── Actions ── */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <Btn onClick={() => setPage("progress")}>📈 View History</Btn>
+        <Btn onClick={() => setPage("progress")}>📈 Track Progress</Btn>
         <Btn variant="ghost" onClick={() => { reset(); setPage("assessments"); }}>🔄 Retake Assessment</Btn>
-        <Btn variant="ghost">📥 Download Report</Btn>
+        <Btn variant="ghost" onClick={() => downloadReport(domainScores, wellness, profile)}>📥 Download Summary</Btn>
       </div>
+
     </div>
   );
 }

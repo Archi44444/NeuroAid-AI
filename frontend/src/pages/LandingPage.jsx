@@ -22,7 +22,7 @@ export default function LandingPage({ setView }) {
           ))}
           <button onClick={() => setView("about")} style={{ background: "none", border: "none", color: T.creamFaint, fontWeight: 700, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 8, fontFamily: "'DM Sans',sans-serif" }}
             onMouseEnter={e => e.target.style.color = T.cream} onMouseLeave={e => e.target.style.color = T.creamFaint}>About</button>
-          <Btn small onClick={() => setView("login")}>Start Free Assessment</Btn>
+          <Btn small onClick={() => setView("disclaimer")}>Start Free Assessment</Btn>
         </div>
       </nav>
 
@@ -90,14 +90,20 @@ export default function LandingPage({ setView }) {
             </div>
           </div>
           <div style={{ marginTop: 60, maxWidth: 620, padding: "0 24px" }}>
+            <div style={{ display: "inline-block", background: "rgba(232,64,64,0.1)", border: "1px solid rgba(232,64,64,0.25)", borderRadius: 20, padding: "5px 14px", fontSize: 12, color: T.red, fontWeight: 600, marginBottom: 20 }}>
+              🧠 Early Cognitive Risk Awareness Tool
+            </div>
             <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(38px,5vw,62px)", fontWeight: 400, lineHeight: 1.08, letterSpacing: -2, color: T.cream }}>
               Reimagine How You<br />Interact With <span style={{ fontStyle: "italic" }}>Your Brain</span>
             </h1>
-            <p style={{ color: T.creamDim, fontSize: 16, marginTop: 16, marginBottom: 28, lineHeight: 1.6 }}>
+            <p style={{ color: T.creamDim, fontSize: 16, marginTop: 16, marginBottom: 10, lineHeight: 1.6 }}>
               Don't just assess. <em>Understand. Practice. Master.</em><br/>
               Turn passive cognitive data into active insights.
             </p>
-            <Btn onClick={() => setView("login")} style={{ fontSize: 16, padding: "14px 32px" }}>⬡ Start Free Assessment</Btn>
+            <p style={{ color: T.creamFaint, fontSize: 13, marginBottom: 28, lineHeight: 1.5 }}>
+              ⚠️ This tool does NOT diagnose medical conditions. For individuals aged 40+ and those with family history.
+            </p>
+            <Btn onClick={() => setView("disclaimer")} style={{ fontSize: 16, padding: "14px 32px" }}>⬡ Start Free Assessment</Btn>
           </div>
         </div>
       </section>
@@ -105,6 +111,65 @@ export default function LandingPage({ setView }) {
       
 
       
+      {/* ── WHY THIS MATTERS + STATS ── */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", gap: 60, alignItems: "flex-start", marginBottom: 60 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "inline-block", background: "rgba(232,64,64,0.1)", border: "1px solid rgba(232,64,64,0.25)", borderRadius: 20, padding: "5px 14px", fontSize: 12, color: T.red, fontWeight: 600, marginBottom: 16 }}>
+                Why This Matters
+              </div>
+              <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 38, fontWeight: 400, letterSpacing: -1.2, color: T.cream, lineHeight: 1.2, marginBottom: 16 }}>
+                Early detection can change<br /><em style={{ color: T.creamDim }}>everything.</em>
+              </h2>
+              <p style={{ color: T.creamDim, fontSize: 15, lineHeight: 1.75, marginBottom: 20 }}>
+                Cognitive decline often begins <strong style={{ color: T.cream }}>10–20 years</strong> before symptoms become obvious. 
+                Regular screening allows you to track subtle changes over time and seek help before 
+                serious decline sets in.
+              </p>
+              <p style={{ color: T.creamFaint, fontSize: 14, lineHeight: 1.7 }}>
+                NeuroAid provides scientifically inspired cognitive assessments accessible to everyone — 
+                no appointment needed, no expensive equipment. Just 7–10 minutes that could matter most.
+              </p>
+            </div>
+            <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {[
+                { stat: "55M+", label: "People worldwide live with dementia", color: T.red },
+                { stat: "10M",  label: "New cases of dementia diagnosed every year", color: T.amber },
+                { stat: "40%",  label: "Of dementia cases may be preventable with lifestyle changes", color: T.green },
+                { stat: "7–10", label: "Minutes for a full NeuroAid assessment", color: T.blue },
+              ].map((s, i) => (
+                <div key={i} style={{ background: T.bg3, borderRadius: 16, padding: "24px 20px", border: `1px solid ${T.cardBorder}` }}>
+                  <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 38, color: s.color, lineHeight: 1, marginBottom: 8 }}>{s.stat}</div>
+                  <div style={{ fontSize: 12, color: T.creamFaint, lineHeight: 1.5 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Who it's for */}
+          <div style={{ background: T.bg3, borderRadius: 20, padding: "32px 36px", border: `1px solid ${T.cardBorder}` }}>
+            <div style={{ fontSize: 11, color: T.creamFaint, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 20 }}>Who Should Use NeuroAid</div>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {[
+                { icon: "👴", title: "Adults 40+", desc: "Establish a cognitive baseline while your brain is healthy" },
+                { icon: "🧬", title: "Family History", desc: "First-degree relatives of Alzheimer's or Parkinson's patients" },
+                { icon: "🔍", title: "Concerned Individuals", desc: "Anyone noticing subtle memory or cognitive changes" },
+                { icon: "🤝", title: "Caregivers", desc: "Help monitor a loved one's cognitive health over time" },
+              ].map((w, i) => (
+                <div key={i} style={{ flex: "1 0 200px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: T.bg2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{w.icon}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: T.cream, fontSize: 14, marginBottom: 4 }}>{w.title}</div>
+                    <div style={{ color: T.creamFaint, fontSize: 13, lineHeight: 1.5 }}>{w.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── COMPLETE LEARNING ECOSYSTEM (feature cards) ── */}
       <section style={{ background: "#0f0f0f", padding: "90px 60px", textAlign: "center" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -210,7 +275,7 @@ export default function LandingPage({ setView }) {
             </div>
             <div style={{ flex: 1, paddingTop: 6 }}>
               <p style={{ color: T.creamDim, fontSize: 15, lineHeight: 1.75, marginBottom: 20 }}>From advanced speech biomarkers to seamless memory tests, we've designed everything to elevate your cognitive screening experience.</p>
-              <Btn variant="cream" onClick={() => setView("login")}>↓ Get started</Btn>
+              <Btn variant="cream" onClick={() => setView("disclaimer")}>↓ Get started</Btn>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 48 }}>
@@ -295,7 +360,7 @@ export default function LandingPage({ setView }) {
           ]].map((row, ri) => (
             <div key={ri} style={{ display: "flex", gap: 24, justifyContent: "center", marginBottom: 32 }}>
               {row.map(t => (
-                <div key={t.label} onClick={() => setView("login")}
+                <div key={t.label} onClick={() => setView("disclaimer")}
                   style={{ width: 140, height: 160, borderRadius: 24, background: t.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", transform: `rotate(${t.rot})`, boxShadow: "0 16px 50px rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.12)", transition: "transform 0.25s" }}
                   onMouseEnter={e => e.currentTarget.style.transform = "scale(1.06) rotate(0deg)"}
                   onMouseLeave={e => e.currentTarget.style.transform = `rotate(${t.rot})`}>
@@ -314,7 +379,7 @@ export default function LandingPage({ setView }) {
         <div style={{ position: "absolute", bottom: -60, left: "50%", transform: "translateX(-50%)", width: 700, height: 350, background: "radial-gradient(ellipse 70% 100% at 50% 100%, rgba(180,100,20,0.22) 0%, rgba(120,60,10,0.1) 40%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 2 }}>
           <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 400, letterSpacing: -1.5, color: T.cream, lineHeight: 1.2, marginBottom: 20 }}>Experience cognitive health like never<br />before with NeuroAid</h2>
-          <Btn onClick={() => setView("login")} style={{ fontSize: 16, padding: "14px 32px", marginBottom: 24 }}>⬡ Start Free Assessment</Btn>
+          <Btn onClick={() => setView("disclaimer")} style={{ fontSize: 16, padding: "14px 32px", marginBottom: 24 }}>⬡ Start Free Assessment</Btn>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", marginBottom: 8 }}>
             {["🌐","📱","💻"].map((e, i) => <div key={i} style={{ width: 30, height: 30, borderRadius: "50%", background: T.bg2, border: `1px solid ${T.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{e}</div>)}
           </div>
