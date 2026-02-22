@@ -1,282 +1,141 @@
-# 🧠 NeuroAid
-### AI-Powered Early Cognitive Risk Screening System
+# 🧠 NeuroAid — Early Cognitive Risk Awareness Tool
 
-> ⚠️ **Disclaimer:** NeuroAid is a non-diagnostic awareness tool. It does NOT diagnose dementia, Alzheimer’s, or any medical condition. It provides an AI-generated cognitive risk score to encourage early consultation with healthcare professionals.
+> A browser-based cognitive screening platform with 7 scientifically-inspired tests, AI-powered risk analysis, and longitudinal tracking.
 
----
-
-## 🌍 Problem Statement
-
-Early signs of cognitive decline (e.g., memory impairment, slowed reaction time, speech irregularities) often go unnoticed because:
-
-- Symptoms are subtle  
-- People avoid clinical testing  
-- Rural areas lack specialists  
-- Screening tools are expensive or inaccessible  
-
-Traditional tools like the [Mini-Mental State Examination](https://en.wikipedia.org/wiki/Mini%E2%80%93Mental_State_Examination) and [Montreal Cognitive Assessment](https://en.wikipedia.org/wiki/Montreal_Cognitive_Assessment) require trained professionals.  
-
-**NeuroAid bridges this gap** by offering a non-invasive, AI-powered early risk screening system accessible via web.
+⚠️ **Not a medical diagnostic device.** Always consult a qualified neurologist.
 
 ---
 
-## 🚀 What NeuroAid Does
+## ✨ Features
 
-NeuroAid analyzes three key cognitive indicators:
-
-1. 🗣 **Speech Patterns**  
-2. 🧠 **Memory Recall Performance**  
-3. ⚡ **Reaction Time Consistency**
-
-It converts behavioral signals into structured metrics and computes a weighted **Cognitive Risk Score (0–100)**.
-
----
-
-## 🧩 Core Features (Hackathon MVP)
-
-### 1️⃣ Speech Analysis Module
-User reads a paragraph aloud.  
-
-AI extracts:
-- Words per minute (speech rate)  
-- Pause frequency  
-- Repetition patterns  
-- Filler word frequency  
-- Sentence coherence  
-
-Output: `Speech Score (0–100)`
+| Feature | Status |
+|---|---|
+| 🔐 Firebase Auth (Email + Guest) | ✅ |
+| ⚕️ Medical Disclaimer Gate | ✅ NEW |
+| 📋 User Profile (age, sleep, family history) | ✅ Enhanced |
+| 🎙️ Speech Analysis | ✅ |
+| 🧠 Memory Recall Test | ✅ |
+| ⚡ Reaction Time Test | ✅ |
+| 🎨 Stroop Test (Executive Function) | ✅ |
+| 🥁 Motor Tap Test (Parkinson's Signal) | ✅ |
+| 🦁 Word Fluency Test (NEW) | ✅ NEW |
+| 🔢 Digit Span / Working Memory (NEW) | ✅ NEW |
+| 📊 18-Feature AI Risk Analysis | ✅ |
+| 📌 Personalised Recommendations Engine | ✅ NEW |
+| 🤖 AI Score Explanation Bot | ✅ NEW |
+| 📥 Downloadable Report | ✅ NEW |
+| 📈 Longitudinal Progress Tracking | ✅ |
+| 🔥 Firestore Assessment History | ✅ |
+| 👨‍⚕️ Doctor Dashboard | ✅ |
 
 ---
 
-### 2️⃣ Memory Micro-Tests
-- 5-word delayed recall  
-- Pattern matching  
-- Sequence repetition  
+## 🚀 Quick Start
 
-Measured:
-- Accuracy  
-- Recall latency  
+### Prerequisites
+- Node.js 18+
+- Python 3.10+
+- Firebase project
 
-Output: `Memory Score (0–100)`
+### 1. Clone & Setup
 
----
-
-### 3️⃣ Reaction Time Test
-User taps when the screen color changes.  
-
-Measured:
-- Average delay  
-- Variability  
-- False triggers  
-
-Output: `Reaction Score (0–100)`
-
----
-
-### 4️⃣ Risk Score Engine
-
-Weighted scoring model:
-
-Risk Score = (0.4 × Speech Score) + (0.4 × Memory Score) + (0.2 × Reaction Score)
-Risk Categories:
-
-0–40   → Low Risk
-41–70  → Moderate Risk
-71–100 → High Risk
-
-
-### 5️⃣ Recommendation Engine
-
-Based on risk level:
-
-Low Risk      → Maintain mental activity & preventive exercises
-Moderate Risk → Suggest consultation with a physician
-High Risk     → Strong recommendation to consult a neurologist
-
-
-### 🏗 System Architecture
-
-User
-  ↓
-Frontend (React / Next.js)
-  ↓
-Backend API (Node.js + Express)
-  ↓
-AI Microservice (Python + FastAPI)
-  ↓
-Feature Extraction + Risk Engine
-  ↓
-Database (Firebase Firestore)
-  ↓
-Return Risk Report + Visualization
-
-
-### 🛠 Tech Stack
-
-## Frontend
-
-React / Next.js
-
-Tailwind CSS
-
-Chart.js
-
-Web Speech API
-
-
-## Backend
-
-Python 3.11+
-
-FastAPI → Modern, async-ready, auto docs (/docs)
-
-Pydantic → Data validation & type hints
-
-
-## AI Microservice
-
-Python
-
-FastAPI
-
-HuggingFace Transformers
-
-Whisper (Speech-to-Text)
-
-
-## Database
-
-Firebase Firestore
-
-
-## Deployment
-
-Vercel (Frontend)
-
-Render (Backend + AI Service)
-
-
-## 🧠 AI & Feature Engineering
-Speech → text using Whisper
-
-Extract behavioral features
-
-Normalize features
-
-Weighted risk computation
-
-Generates interpretable risk report
-
-
-## Example API Payload:
+```bash
+# Frontend
+cd frontend
+cp .env.example .env
+# Fill in Firebase credentials and set VITE_API_URL=http://localhost:8000
+npm install
+npm run dev
 ```
-POST /api/analyze
-{
-  "speech_audio": "base64-encoded-audio",
-  "memory_results": {
-    "word_recall_accuracy": 80,
-    "pattern_accuracy": 70
-  },
-  "reaction_times": [300, 280, 350, 310]
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+### 2. Firebase Setup
+
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable **Authentication** → Email/Password
+3. Enable **Firestore Database**
+4. Add Firestore rules:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /assessments/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null;
+    }
+  }
 }
 ```
-Example Response:
+
+5. Create a Firestore **composite index** for assessment history:
+   - Collection: `assessments`
+   - Fields: `uid` (Ascending), `createdAt` (Descending)
+
+### 3. Environment Variables
+
+```env
+# frontend/.env
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_API_URL=http://localhost:8000
 ```
-{
-  "speech_score": 72,
-  "memory_score": 65,
-  "reaction_score": 81,
-  "risk_score": 71.2,
-  "risk_level": "Moderate"
-}
+
+---
+
+## 🧪 Assessment Suite
+
+| Test | Duration | What It Measures |
+|---|---|---|
+| Speech Analysis | ~2 min | WPM, pause ratio, rhythm variability |
+| Memory Recall | ~3 min | Immediate/delayed recall, intrusions |
+| Reaction Time | ~2 min | Processing speed, attention variability |
+| Stroop Test | ~2 min | Executive function, inhibitory control |
+| Motor Tap | ~1 min | Rhythmic motor control (Parkinson's signal) |
+| Word Fluency *(new)* | ~1 min | Semantic memory, verbal fluency |
+| Digit Span *(new)* | ~2 min | Working memory capacity |
+
+**Total: ~12 minutes**
+
+---
+
+## 🏗️ Architecture
+
 ```
----
+Frontend (React + Vite)
+  ├── Firebase Auth (login/register/guest)
+  ├── 7 cognitive test components
+  ├── AssessmentContext (global state)
+  ├── API service → FastAPI backend
+  └── Firestore (save results, history)
+
+Backend (FastAPI + Python)
+  ├── /api/analyze — 18-feature ML scoring
+  ├── Disease risk models (Alzheimer's, Dementia, Parkinson's)
+  └── Age-normalized composite risk score
 ```
-📁 GitHub Folder Structure
-neuroaid/
-│
-├── frontend/                         # React + Vite frontend
-│   ├── public/                       # Static assets
-│   ├── src/
-│   │   ├── components/               # All UI components
-│   │   │   ├── SpeechTest.jsx
-│   │   │   ├── MemoryTest.jsx
-│   │   │   ├── ReactionTest.jsx
-│   │   │   └── RiskDashboard.jsx
-│   │   ├── pages/                    # Screens / pages
-│   │   │   ├── Home.jsx
-│   │   │   └── Results.jsx
-│   │   ├── services/                 # API calls
-│   │   │   └── api.js
-│   │   ├── hooks/
-│   │   │   └── useFormState.js
-│   │   ├── utils/
-│   │   │   └── helpers.js
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css                 # Tailwind import
-│   ├── package.json
-│   ├── tailwind.config.js
-│   └── vite.config.js
-│
-├── backend/                          # FastAPI backend
-│   ├── main.py                       # FastAPI app entrypoint
-│   ├── routers/
-│   │   └── analyze.py                # /api/analyze endpoint
-│   ├── services/
-│   │   └── ai_service.py             # Feature extraction + scoring engine
-│   ├── utils/
-│   │   └── logger.py                 # Request/error logging
-│   ├── models/                        # Optional Pydantic models
-│   ├── config.py                     # Weights, thresholds, model paths
-│   ├── db.py                         # Firestore integration
-│   ├── requirements.txt
-│   └── README.md                     # How to run backend
-│
-├── ai-service/                        # Optional separate AI microservice
-│   ├── app.py                         # FastAPI or module for AI
-│   ├── feature_extractor.py
-│   ├── scoring_engine.py
-│   ├── models/                        # Whisper / transformer models
-│   ├── utils/
-│   │   ├── audio_utils.py
-│   │   ├── text_utils.py
-│   │   └── data_processing.py
-│   ├── config.py
-│   ├── requirements.txt
-│   └── README.md
-│
-├── docs/
-│   ├── architecture.md
-│   ├── api-spec.md
-│   └── research-notes.md
-│
-├── .env.example                       # Environment variables (PORT, Firestore credentials)
-├── docker-compose.yml                  # Optional: containerize frontend + backend + AI
-├── README.md                           # Project overview, hackathon instructions
-└── LICENSE
-```
----
-### 🌟 Future Enhancements
-Longitudinal cognitive tracking
-
-Emotional tone analysis
-
-Doctor dashboard
-
-PDF medical-style report export
-
-Low-bandwidth rural mode
 
 ---
 
-### 📌 Why NeuroAid Matters
-Accessible AI-assisted cognitive screening can significantly improve early awareness, preventive action, and quality of life, especially in areas lacking specialist neurologists.
+## ⚕️ Medical Disclaimer
 
----
+NeuroAid is a **behavioral screening tool only**. It:
+- ✅ Measures cognitive performance patterns
+- ✅ Identifies behavioral risk indicators  
+- ❌ Does NOT diagnose medical conditions
+- ❌ Does NOT replace clinical evaluation
 
-### 📜 License..
-MIT License
-
-
----
+Always consult a qualified neurologist for medical assessment.

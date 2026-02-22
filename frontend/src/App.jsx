@@ -6,6 +6,8 @@ import { AssessmentProvider } from "./context/AssessmentContext";
 import LandingPage     from "./pages/LandingPage";
 import AboutPage       from "./pages/AboutPage";
 import LoginPage       from "./pages/Login";
+import DisclaimerPage  from "./pages/DisclaimerPage";
+import ProfileSetup    from "./pages/ProfileSetup";
 import UserDashboard   from "./pages/UserDashboard";
 import AssessmentHub   from "./pages/AssessmentHub";
 import ResultsPage     from "./pages/ResultsPage";
@@ -13,11 +15,13 @@ import ProgressPage    from "./pages/ProgressPage";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import PatientDetail   from "./pages/PatientDetail";
 
-import SpeechTest   from "./components/SpeechTest";
-import MemoryTest   from "./components/MemoryTest";
-import ReactionTest from "./components/ReactionTest";
-import StroopTest   from "./components/StroopTest";
-import TapTest      from "./components/TapTest";
+import SpeechTest    from "./components/SpeechTest";
+import MemoryTest    from "./components/MemoryTest";
+import ReactionTest  from "./components/ReactionTest";
+import StroopTest    from "./components/StroopTest";
+import TapTest       from "./components/TapTest";
+import FluencyTest   from "./components/FluencyTest";
+import DigitSpanTest from "./components/DigitSpanTest";
 
 injectStyles();
 
@@ -51,21 +55,24 @@ export default function App() {
     handleView("dashboard");
   }
 
-  if (view === "landing")       return <LandingPage setView={handleView} />;
-  if (view === "about")         return <AboutPage   setView={handleView} />;
-  if (view === "login")         return <LoginPage   setView={handleView} setRole={setRole} onLogin={handleLogin} />;
+  if (view === "landing")    return <LandingPage    setView={handleView} />;
+  if (view === "about")      return <AboutPage      setView={handleView} />;
+  if (view === "login")      return <LoginPage      setView={handleView} setRole={setRole} onLogin={handleLogin} />;
+  if (view === "disclaimer") return <DisclaimerPage setView={handleView} onAccept={() => handleView("login")} />;
   if (view === "profile-setup") return <ProfileSetup onComplete={handleProfileComplete} user={user} />;
 
   const userPages = {
     "dashboard":   <UserDashboard  setPage={setPage} user={user} />,
-    "assessments": <AssessmentHub  setPage={setPage} />,
+    "assessments": <AssessmentHub  setPage={setPage} user={user} />,
     "speech":      <SpeechTest     setPage={setPage} />,
     "memory":      <MemoryTest     setPage={setPage} />,
     "reaction":    <ReactionTest   setPage={setPage} />,
     "stroop":      <StroopTest     setPage={setPage} />,
     "tap":         <TapTest        setPage={setPage} />,
+    "fluency":     <FluencyTest    setPage={setPage} />,
+    "digitspan":   <DigitSpanTest  setPage={setPage} />,
     "results":     <ResultsPage    setPage={setPage} />,
-    "progress":    <ProgressPage />,
+    "progress":    <ProgressPage   user={user} />,
   };
 
   const doctorPages = {

@@ -41,10 +41,24 @@ class TapData(BaseModel):
     intervals: List[float] = []                 # ms between taps
     tap_count: int = 0
 
+class FluencyData(BaseModel):
+    word_count: int = 0
+    repetitions: int = 0
+    avg_pause_seconds: Optional[float] = None
+    total_words: int = 0
+
+class DigitSpanData(BaseModel):
+    max_forward_span: int = 0
+    total_trials: int = 0
+    accuracy: Optional[float] = None
+
 class UserProfile(BaseModel):
     age: Optional[int] = None
     education_level: Optional[int] = None       # 1–5
     sleep_hours: Optional[float] = None
+    family_history: Optional[bool] = False
+    existing_diagnosis: Optional[bool] = False
+    sleep_quality: Optional[str] = "normal"     # poor/fair/normal/good/excellent
 
 # ── Main request ───────────────────────────────────────────────────────────────
 
@@ -60,6 +74,8 @@ class AnalyzeRequest(BaseModel):
     stroop: Optional[StroopData] = None
     tap: Optional[TapData] = None
     profile: Optional[UserProfile] = None
+    fluency: Optional[FluencyData] = None
+    digit_span: Optional[DigitSpanData] = None
 
 # ── Feature vector (18 features) ──────────────────────────────────────────────
 

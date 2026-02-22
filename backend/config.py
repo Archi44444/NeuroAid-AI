@@ -39,7 +39,7 @@ API_PORT = int(os.getenv("API_PORT", "8000"))
 DEBUG    = os.getenv("DEBUG", "true").lower() == "true"
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://127.0.0.1:5173").split(",")
 
 # ── AI Service URL ────────────────────────────────────────────────────────────
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8001")
