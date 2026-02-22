@@ -1,0 +1,37 @@
+# ── Environment files (NEVER commit these) ────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+
+# ── Python / Backend & AI Service ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ── HuggingFace model cache ────────────────────────────────────────────────────
+hf_cache/
+models/weights/
+*.onnx
+*.pt
+*.bin
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp

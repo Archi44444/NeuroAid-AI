@@ -26,6 +26,7 @@ export default function App() {
   const [role, setRole]       = useState("user");
   const [page, setPage]       = useState("dashboard");
   const [patient, setPatient] = useState(null);
+  const [user, setUser]       = useState(null);
 
   function handleView(v) {
     setView(v);
@@ -33,12 +34,30 @@ export default function App() {
     if (v === "doctor-dashboard") setPage("doctor-dashboard");
   }
 
-  if (view === "landing") return <LandingPage setView={handleView} />;
-  if (view === "about")   return <AboutPage   setView={handleView} />;
-  if (view === "login")   return <LoginPage   setView={handleView} setRole={setRole} />;
+  function handleLogin({ name, email, uid, role: r, isNew }) {
+    setUser({ name, email, uid, profileComplete: !isNew });
+    setRole(r || "user");
+    if (r === "doctor") {
+      handleView("doctor-dashboard");
+    } else if (isNew) {
+      setView("profile-setup");
+    } else {
+      handleView("dashboard");
+    }
+  }
+
+  function handleProfileComplete(profileData) {
+    setUser(u => ({ ...u, ...profileData, profileComplete: true }));
+    handleView("dashboard");
+  }
+
+  if (view === "landing")       return <LandingPage setView={handleView} />;
+  if (view === "about")         return <AboutPage   setView={handleView} />;
+  if (view === "login")         return <LoginPage   setView={handleView} setRole={setRole} onLogin={handleLogin} />;
+  if (view === "profile-setup") return <ProfileSetup onComplete={handleProfileComplete} user={user} />;
 
   const userPages = {
-    "dashboard":   <UserDashboard  setPage={setPage} />,
+    "dashboard":   <UserDashboard  setPage={setPage} user={user} />,
     "assessments": <AssessmentHub  setPage={setPage} />,
     "speech":      <SpeechTest     setPage={setPage} />,
     "memory":      <MemoryTest     setPage={setPage} />,

@@ -63,11 +63,6 @@ export default function LandingPage({ setView }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: T.cream }}>0.8 / min</div>
           <div style={{ fontSize: 10, color: T.green }}>● Normal</div>
         </FloatCard>
-        <FloatCard style={{ position: "absolute", right: "5%", top: "76%", animation: "floatR 9s ease-in-out infinite 3s" }}>
-          <div style={{ fontSize: 10, color: T.creamFaint, marginBottom: 2 }}>Filler Words</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.cream }}>3 detected</div>
-          <div style={{ fontSize: 10, color: T.amber }}>● Monitor</div>
-        </FloatCard>
 
         <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
           <div style={{ width: 220, margin: "0 auto", background: "#1c1c1e", borderRadius: 36, padding: "16px 14px 24px", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 40px 100px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1)", animation: "float 6s ease-in-out infinite" }}>
@@ -98,6 +93,110 @@ export default function LandingPage({ setView }) {
             <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(38px,5vw,62px)", fontWeight: 400, lineHeight: 1.08, letterSpacing: -2, color: T.cream }}>
               Reimagine How You<br />Interact With <span style={{ fontStyle: "italic" }}>Your Brain</span>
             </h1>
+            <p style={{ color: T.creamDim, fontSize: 16, marginTop: 16, marginBottom: 28, lineHeight: 1.6 }}>
+              Don't just assess. <em>Understand. Practice. Master.</em><br/>
+              Turn passive cognitive data into active insights.
+            </p>
+            <Btn onClick={() => setView("login")} style={{ fontSize: 16, padding: "14px 32px" }}>⬡ Start Free Assessment</Btn>
+          </div>
+        </div>
+      </section>
+
+      
+
+      
+      {/* ── COMPLETE LEARNING ECOSYSTEM (feature cards) ── */}
+      <section style={{ background: "#0f0f0f", padding: "90px 60px", textAlign: "center" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 40, fontWeight: 400, letterSpacing: -1.4, color: T.cream, marginBottom: 10 }}>Complete Assessment Ecosystem</h2>
+          <p style={{ color: T.creamDim, fontSize: 15, marginBottom: 56, maxWidth: 520, margin: "0 auto 56px" }}>
+            Everything you need to understand your brain health, all in one place.
+          </p>
+
+          {/* Main feature grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+            {/* Routine Generation */}
+            <DarkCard style={{ padding: 28, textAlign: "left", border: `1px solid rgba(96,165,250,0.2)` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(96,165,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📅</div>
+                <div style={{ fontWeight: 700, color: T.cream, fontSize: 16 }}>Assessment Scheduling</div>
+              </div>
+              <p style={{ color: T.creamFaint, fontSize: 13, lineHeight: 1.65, marginBottom: 16 }}>Automated test schedules built around your cognitive goals and progress.</p>
+              <div style={{ background: T.bg3, borderRadius: 12, padding: 14, border: `1px solid ${T.cardBorder}` }}>
+                {[{ time: "09:00 AM", c: T.blue }, { time: "10:30 AM", c: "#a78bfa" }, { time: "01:00 PM", c: T.green }].map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i < 2 ? `1px solid ${T.cardBorder}` : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: item.c }} />
+                      <div style={{ width: 80, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.1)" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: T.creamFaint }}>{item.time}</span>
+                  </div>
+                ))}
+              </div>
+            </DarkCard>
+
+            {/* Learning Feed */}
+            <DarkCard style={{ padding: 28, textAlign: "left", border: `1px solid rgba(245,158,11,0.2)` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
+                <div style={{ fontWeight: 700, color: T.cream, fontSize: 16 }}>Results Feed</div>
+              </div>
+              <p style={{ color: T.creamFaint, fontSize: 13, lineHeight: 1.65, marginBottom: 16 }}>Bite-sized insights generated from your cognitive assessments.</p>
+              <div style={{ background: T.bg3, borderRadius: 12, padding: 14, border: `1px solid ${T.cardBorder}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, color: T.creamDim, fontWeight: 600 }}>Results</span>
+                  <span style={{ fontSize: 16 }}>⚡</span>
+                </div>
+                <div style={{ background: T.bg, borderRadius: 8, height: 80, display: "flex", flexDirection: "column", justifyContent: "center", padding: 10, gap: 6 }}>
+                  {["Speech: Normal range","Memory: Improving","Reaction: Stable"].map((t, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: [T.green, T.blue, T.amber][i] }} />
+                      <span style={{ fontSize: 11, color: T.creamFaint }}>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </DarkCard>
+
+            {/* Smart Note-Taking */}
+            <DarkCard style={{ padding: 28, textAlign: "left", border: `1px solid rgba(74,222,128,0.2)` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(74,222,128,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏷️</div>
+                <div style={{ fontWeight: 700, color: T.cream, fontSize: 16 }}>Smart Reporting</div>
+              </div>
+              <p style={{ color: T.creamFaint, fontSize: 13, lineHeight: 1.65, marginBottom: 16 }}>Text analysis + visual charts. Doctor-ready reports with one click.</p>
+              <div style={{ background: T.bg3, borderRadius: 12, padding: 14, border: `1px solid ${T.cardBorder}`, display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={{ flex: 1 }}>
+                  {[70, 85, 65].map((w, i) => (
+                    <div key={i} style={{ height: 5, borderRadius: 2, background: `rgba(74,222,128,${0.3 + i * 0.2})`, marginBottom: i < 2 ? 6 : 0, width: `${w}%` }} />
+                  ))}
+                </div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, border: `2px solid ${T.green}50`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📄</div>
+              </div>
+            </DarkCard>
+
+            {/* Deep Focus */}
+            <DarkCard style={{ padding: 28, textAlign: "left", border: `1px solid rgba(232,64,64,0.2)` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(232,64,64,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⏱️</div>
+                <div style={{ fontWeight: 700, color: T.cream, fontSize: 16 }}>Deep Focus Mode</div>
+              </div>
+              <p style={{ color: T.creamFaint, fontSize: 13, lineHeight: 1.65 }}>Distraction-free assessment environment with focus timer and immersive UI.</p>
+            </DarkCard>
+
+            {/* Intelligent Quizzes */}
+            <DarkCard style={{ padding: 28, textAlign: "left", border: `1px solid rgba(167,139,250,0.2)`, gridColumn: "2 / 4" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>✅</div>
+                <div style={{ fontWeight: 700, color: T.cream, fontSize: 16 }}>Intelligent Assessments</div>
+              </div>
+              <p style={{ color: T.creamFaint, fontSize: 13, lineHeight: 1.65, marginBottom: 16 }}>5 evidence-based cognitive tests — Speech, Memory, Reaction, Stroop, and Motor — powered by 18 behavioral feature signals and Hugging Face NLP models.</p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {["🎙️ Speech AI","🧠 Memory","⚡ Reaction","🎨 Stroop","🥁 Motor Tap"].map(t => (
+                  <span key={t} style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, border: "1px solid rgba(167,139,250,0.2)" }}>{t}</span>
+                ))}
+              </div>
+            </DarkCard>
           </div>
         </div>
       </section>
@@ -206,7 +305,6 @@ export default function LandingPage({ setView }) {
               ))}
             </div>
           ))}
-          <Btn variant="ghost" style={{ borderRadius: 12 }}>↓ More</Btn>
         </div>
       </section>
 

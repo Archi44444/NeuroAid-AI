@@ -72,7 +72,7 @@ export function MiniChart({ data, color = T.red, height = 60 }) {
   );
 }
 
-export function Sidebar({ role, page, setPage, setView }) {
+export function Sidebar({ role, page, setPage, setView, user }) {
   const uNav = [
     { id: "dashboard",   label: "Overview",      icon: "◈" },
     { id: "assessments", label: "Assessments",   icon: "◉" },
@@ -108,17 +108,28 @@ export function Sidebar({ role, page, setPage, setView }) {
           );
         })}
       </nav>
-      <div style={{ padding: "16px 24px", borderTop: `1px solid ${T.cardBorder}` }}>
+      <div style={{ padding: "16px 20px", borderTop: `1px solid ${T.cardBorder}` }}>
+        {user?.name && (
+          <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: T.white, flexShrink: 0 }}>
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}>{user.name}</div>
+              {user.email && <div style={{ fontSize: 10, color: T.creamFaint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>{user.email}</div>}
+            </div>
+          </div>
+        )}
         <button onClick={() => setView("landing")} style={{ background: "transparent", border: "none", color: T.creamFaint, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>← Sign out</button>
       </div>
     </div>
   );
 }
 
-export function Shell({ role, page, setPage, setView, children }) {
+export function Shell({ role, page, setPage, setView, children, user }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: T.bg }}>
-      <Sidebar role={role} page={page} setPage={setPage} setView={setView} />
+      <Sidebar role={role} page={page} setPage={setPage} setView={setView} user={user} />
       <main style={{ marginLeft: 220, flex: 1, padding: "40px 48px", maxWidth: "calc(100vw - 220px)", minHeight: "100vh" }}>{children}</main>
     </div>
   );
