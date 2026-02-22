@@ -104,6 +104,12 @@ class AnalyzeResponse(BaseModel):
     reaction_score: float
     executive_score: float
     motor_score: float
+    # Composite cognitive risk (0–100, higher = riskier)
+    composite_risk_score: Optional[float] = None
+    composite_risk_level: Optional[str] = None  # "Low" | "Mild Concern" | "Moderate Risk" | "High Risk"
+    confidence_lower: Optional[float] = None  # Lower bound of 95% CI
+    confidence_upper: Optional[float] = None  # Upper bound of 95% CI
+    model_uncertainty: Optional[float] = None  # % of model uncertainty
     # Disease-specific probabilities (0–1)
     alzheimers_risk: float
     dementia_risk: float

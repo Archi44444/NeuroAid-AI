@@ -5,6 +5,7 @@ from services.ai_service import (
     extract_reaction_features, extract_executive_features,
     extract_motor_features, compute_disease_risks,
     build_feature_vector, _prob_to_level,
+    compute_composite_risk_score,
 )
 from utils.logger import log_info
 
@@ -38,6 +39,16 @@ async def analyze(payload: AnalyzeRequest):
         dem_risk  = risks["dementia_risk"]
         park_risk = risks["parkinsons_risk"]
 
+        # Compute composite risk score (new)
+        composite_data = compute_composite_risk_score(
+            speech_score=speech_score,
+            memory_score=memory_score,
+            reaction_score=reaction_score,
+            executive_score=exec_score,
+            motor_score=motor_score,
+            profile=payload.profile,
+        )
+
         mean_rt = rf.get("mean_rt", 1)
         std_rt  = rf.get("std_rt", 0)
         avi     = round(std_rt / mean_rt, 4) if mean_rt > 0 else 0.0
@@ -51,6 +62,11 @@ async def analyze(payload: AnalyzeRequest):
         reaction_score=reaction_score,
         executive_score=exec_score,
         motor_score=motor_score,
+        composite_risk_score=composite_data["composite_risk_score"],
+        composite_risk_level=composite_data["risk_level"],
+        confidence_lower=composite_data["confidence_lower"],
+        confidence_upper=composite_data["confidence_upper"],
+        model_uncertainty=composite_data["model_uncertainty"],
         alzheimers_risk=alz_risk,
         dementia_risk=dem_risk,
         parkinsons_risk=park_risk,

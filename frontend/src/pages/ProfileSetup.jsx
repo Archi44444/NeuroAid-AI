@@ -9,7 +9,8 @@ const STEP_COUNT = 3;
 export default function ProfileSetup({ onComplete, user }) {
   const [step, setStep] = useState(1);
   const [data, setData] = useState({
-    age: "", gender: "", handedness: "right",
+    age: user?.age || "",
+    gender: "", handedness: "right",
     education: "", occupation: "",
     medicalHistory: [], currentMeds: "",
     cognitiveComplaints: [], sleepHours: "", exerciseFreq: "",

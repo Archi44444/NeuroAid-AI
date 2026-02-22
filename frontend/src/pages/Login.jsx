@@ -16,6 +16,7 @@ export default function LoginPage({ setView, setRole, onLogin }) {
   const [email, setEmail] = useState("");
   const [pass, setPass]   = useState("");
   const [license, setLicense] = useState("");
+  const [age, setAge]     = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr]     = useState("");
 
@@ -23,6 +24,7 @@ export default function LoginPage({ setView, setRole, onLogin }) {
     setErr("");
     if (!email || !pass) { setErr("Please fill in all fields."); return; }
     if (tab === "register" && !name.trim()) { setErr("Please enter your name."); return; }
+    if (tab === "register" && mode === "user" && (!age || isNaN(age) || age < 18 || age > 100)) { setErr("Please enter a valid age (18-100)."); return; }
     setLoading(true);
     try {
       if (tab === "register") {
@@ -32,11 +34,12 @@ export default function LoginPage({ setView, setRole, onLogin }) {
           name: name.trim(),
           email,
           role: mode,
+          age: mode === "user" ? parseInt(age, 10) : null,
           license: mode === "doctor" ? license : null,
           createdAt: new Date().toISOString(),
           profileComplete: false,
         });
-        onLogin({ name: name.trim(), email, uid: cred.user.uid, role: mode, isNew: true });
+        onLogin({ name: name.trim(), email, uid: cred.user.uid, role: mode, isNew: true, age: mode === "user" ? parseInt(age, 10) : null });
       } else {
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -135,6 +138,12 @@ export default function LoginPage({ setView, setRole, onLogin }) {
                 onChange={e => setLicense(e.target.value)}
                 style={inputStyle}
               />
+            )}
+            {tab === "register" && mode === "user" && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ color: T.creamFaint, fontSize: 12, marginBottom: 6, display: "block" }}>Age</label>
+                <input type="number" min="18" max="100" value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 45" style={{ padding: "13px 16px", borderRadius: 12, border: `1px solid ${T.cardBorder}`, background: T.bg2, fontSize: 14, color: T.cream, outline: "none", width: "100%" }} />
+              </div>
             )}
 
             {err && (
