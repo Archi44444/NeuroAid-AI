@@ -7,7 +7,6 @@ import { submitAnalysis } from "../services/api";
 export default function AssessmentHub({ setPage }) {
   const {
     speechData, memoryData, reactionData, stroopData, tapData,
-    profile,
     setApiResult, setLoading, setError, loading, error, completedCount,
   } = useAssessment();
 
@@ -40,12 +39,12 @@ export default function AssessmentHub({ setPage }) {
           speech_start_delay:       speechData.speech_start_delay,
         } : null,
         memory: memoryData ? {
-          word_recall_accuracy:    memoryData.word_recall_accuracy,
-          pattern_accuracy:        memoryData.pattern_accuracy,
-          delayed_recall_accuracy: memoryData.delayed_recall_accuracy,
-          recall_latency_seconds:  memoryData.recall_latency_seconds,
-          order_match_ratio:       memoryData.order_match_ratio,
-          intrusion_count:         memoryData.intrusion_count,
+          word_recall_accuracy:   memoryData.word_recall_accuracy,
+          pattern_accuracy:       memoryData.pattern_accuracy,
+          delayed_recall_accuracy:memoryData.delayed_recall_accuracy,
+          recall_latency_seconds: memoryData.recall_latency_seconds,
+          order_match_ratio:      memoryData.order_match_ratio,
+          intrusion_count:        memoryData.intrusion_count,
         } : null,
         reaction: reactionData ? {
           times:      reactionData.times,
@@ -60,16 +59,6 @@ export default function AssessmentHub({ setPage }) {
         tap: tapData ? {
           intervals:  tapData.intervals,
           tap_count:  tapData.tap_count,
-        } : null,
-        // Profile passed so backend can age-normalize scores
-        profile: profile ? {
-          age:             profile.age ? parseInt(profile.age) : null,
-          education_level: profile.education
-            ? ["High School","Some College","Bachelor's","Master's","Doctoral","Professional Degree"].indexOf(profile.education) + 1
-            : null,
-          sleep_hours: profile.sleepHours ? parseFloat(profile.sleepHours) : null,
-          handedness:  profile.handedness || null,
-          gender:      profile.gender     || null,
         } : null,
       };
 

@@ -1,7 +1,5 @@
 // ── API service layer ─────────────────────────────────────────────────────────
-// Base URL is read from VITE_API_URL in your .env file.
-// Falls back to http://localhost:8000 for local development.
-const BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api";
+const BASE = "/api";
 
 async function request(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
@@ -17,8 +15,15 @@ async function request(method, path, body) {
 }
 
 /**
- * Submit all assessment results for AI scoring.
- * @param {object} payload - { speech, memory, reaction, stroop, tap, profile }
+ * Submit all three assessment results in one call.
+ * @param {object} payload - { speech, memory, reaction, profile }
  */
 export const submitAnalysis = (payload) =>
   request("POST", "/analyze", payload);
+
+// Legacy helpers kept for compatibility
+export const login = (email, password, role) =>
+  request("POST", "/auth/login", { email, password, role });
+
+export const register = (name, email, password, role) =>
+  request("POST", "/auth/register", { name, email, password, role });

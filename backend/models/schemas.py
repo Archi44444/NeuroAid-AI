@@ -1,6 +1,6 @@
 """
-schemas.py — NeuroAid v4
-Age-normalized scoring, 4-tier thresholds, composite risk score.
+schemas.py — NeuroAid v3
+18-feature pipeline with disease-specific multi-model output.
 """
 from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -16,7 +16,7 @@ class SpeechData(BaseModel):
     pause_ratio: Optional[float] = None
     completion_ratio: Optional[float] = None
     restart_count: Optional[int] = 0
-    speech_start_delay: Optional[float] = None
+    speech_start_delay: Optional[float] = None   # seconds before speaking begins
 
 class MemoryData(BaseModel):
     word_recall_accuracy: float = Field(default=50.0, ge=0, le=100)
@@ -29,31 +29,31 @@ class MemoryData(BaseModel):
 class ReactionData(BaseModel):
     times: List[float] = []
     miss_count: Optional[int] = 0
-    initiation_delay: Optional[float] = None
+    initiation_delay: Optional[float] = None    # ms before first click after go
 
 class StroopData(BaseModel):
     total_trials: int = 0
     error_count: int = 0
-    mean_rt: Optional[float] = None
+    mean_rt: Optional[float] = None             # ms on incongruent trials
     incongruent_rt: Optional[float] = None
 
 class TapData(BaseModel):
-    intervals: List[float] = []
+    intervals: List[float] = []                 # ms between taps
     tap_count: int = 0
 
 class UserProfile(BaseModel):
     age: Optional[int] = None
-    education_level: Optional[int] = None   # 1–5
+    education_level: Optional[int] = None       # 1–5
     sleep_hours: Optional[float] = None
-    handedness: Optional[str] = None
-    gender: Optional[str] = None
 
 # ── Main request ───────────────────────────────────────────────────────────────
 
 class AnalyzeRequest(BaseModel):
+    # Legacy flat fields
     speech_audio: Optional[str] = None
     memory_results: Dict[str, float] = {"word_recall_accuracy": 50.0, "pattern_accuracy": 50.0}
     reaction_times: List[float] = []
+    # Structured payloads
     speech: Optional[SpeechData] = None
     memory: Optional[MemoryData] = None
     reaction: Optional[ReactionData] = None
@@ -98,33 +98,22 @@ class DiseaseRiskLevels(BaseModel):
 # ── Response ───────────────────────────────────────────────────────────────────
 
 class AnalyzeResponse(BaseModel):
-    # Domain scores (0–100, higher = healthier, age-normalized)
+    # Domain scores (0–100, higher = healthier)
     speech_score: float
     memory_score: float
     reaction_score: float
     executive_score: float
     motor_score: float
-
-    # Composite risk score (0–100, higher = MORE risk)
-    # Weights: Memory 30%, Speech 25%, Executive 20%, Reaction 15%, Motor 10%
-    composite_risk_score: float = 0.0
-    composite_risk_tier: str = "Low"     # Low | Mild Concern | Moderate Risk | High Risk
-
     # Disease-specific probabilities (0–1)
     alzheimers_risk: float
     dementia_risk: float
     parkinsons_risk: float
-
-    # Risk level labels (4-tier)
+    # Risk level labels
     risk_levels: DiseaseRiskLevels
-
     # Feature transparency
     feature_vector: Optional[FeatureVector] = None
     attention_variability_index: Optional[float] = None
-
-    # Flags
-    age_normalized: bool = False   # True when a valid age was provided
-
+    # Disclaimer always present
     disclaimer: str = (
         "⚠️ This is a behavioral screening tool only. "
         "It is NOT a medical diagnosis. Always consult a qualified "

@@ -6,7 +6,6 @@ import { AssessmentProvider } from "./context/AssessmentContext";
 import LandingPage     from "./pages/LandingPage";
 import AboutPage       from "./pages/AboutPage";
 import LoginPage       from "./pages/Login";
-import ProfileSetup    from "./pages/ProfileSetup";
 import UserDashboard   from "./pages/UserDashboard";
 import AssessmentHub   from "./pages/AssessmentHub";
 import ResultsPage     from "./pages/ResultsPage";
@@ -65,8 +64,8 @@ export default function App() {
     "reaction":    <ReactionTest   setPage={setPage} />,
     "stroop":      <StroopTest     setPage={setPage} />,
     "tap":         <TapTest        setPage={setPage} />,
-    "results":     <ResultsPage    setPage={setPage} user={user} />,
-    "progress":    <ProgressPage   user={user} />,
+    "results":     <ResultsPage    setPage={setPage} />,
+    "progress":    <ProgressPage />,
   };
 
   const doctorPages = {
@@ -81,7 +80,7 @@ export default function App() {
 
   return (
     <AssessmentProvider>
-      <Shell role={role} page={page} setPage={setPage} setView={handleView} user={user}>
+      <Shell role={role} page={page} setPage={setPage} setView={handleView}>
         {content}
       </Shell>
     </AssessmentProvider>
