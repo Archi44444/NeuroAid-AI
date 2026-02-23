@@ -20,11 +20,47 @@ async function request(method, path, body, token) {
 
 /**
  * Submit all assessment results for AI analysis.
- * @param {object} payload - { speech, memory, reaction, stroop, tap, profile, fluency, digit_span }
+ *
+ * Payload shape:
+ * {
+ *   speech, memory, reaction, stroop, tap, fluency, digit_span,
+ *   profile: {
+ *     age, education_level, sleep_hours,
+ *     family_history, existing_diagnosis, sleep_quality,
+ *     medical_conditions: { diabetes, hypertension, stroke_history,
+ *                           family_alzheimers, parkinsons_dx,
+ *                           depression, thyroid_disorder },
+ *     fatigue_flags:      { tired, sleep_deprived, sick, anxious },
+ *   }
+ * }
+ *
+ * @param {object} payload
  * @param {string} [token] - optional Firebase auth token
  */
 export const submitAnalysis = (payload, token) =>
   request("POST", "/analyze", payload, token);
+
+/**
+ * Send an educational question to the RAG chatbot.
+ *
+ * The chatbot:
+ *   - Explains cognitive risk indicators in plain language
+ *   - Retrieves answers from NIH / Alzheimer's Assoc / Parkinson's Foundation
+ *   - Refuses diagnosis and medication questions (guardrails)
+ *   - Always returns a disclaimer
+ *
+ * @param {string} question        - The user's natural language question
+ * @param {object} [userContext]   - Optional context e.g. { age, riskScores }
+ * @param {string} [token]         - Optional Firebase auth token
+ * @returns {Promise<{
+ *   answer: string,
+ *   sources: string[],
+ *   guardrail_triggered: boolean,
+ *   disclaimer: string
+ * }>}
+ */
+export const submitChat = (question, userContext = null, token = null) =>
+  request("POST", "/chat", { question, user_context: userContext }, token);
 
 // Health check
 export const healthCheck = () =>

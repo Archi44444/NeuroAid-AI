@@ -22,6 +22,7 @@ import StroopTest    from "./components/StroopTest";
 import TapTest       from "./components/TapTest";
 import FluencyTest   from "./components/FluencyTest";
 import DigitSpanTest from "./components/DigitSpanTest";
+import NeuroBot      from "./components/NeuroBot";   // ✅ NEW
 
 injectStyles();
 
@@ -72,7 +73,7 @@ export default function App() {
     "fluency":     <FluencyTest    setPage={setPage} />,
     "digitspan":   <DigitSpanTest  setPage={setPage} />,
     "results":     <ResultsPage    setPage={setPage} />,
-    "progress":    <ProgressPage   user={user} />,
+    "progress":    <ProgressPage   user={user} setPage={setPage} />,  // ✅ setPage added
   };
 
   const doctorPages = {
@@ -90,6 +91,8 @@ export default function App() {
       <Shell role={role} page={page} setPage={setPage} setView={handleView}>
         {content}
       </Shell>
+      {/* ✅ NeuroBot — floating on every page after login, user-facing only */}
+      {role === "user" && <NeuroBot user={user} />}
     </AssessmentProvider>
   );
 }

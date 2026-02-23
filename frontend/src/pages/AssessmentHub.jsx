@@ -6,6 +6,46 @@ import { submitAnalysis } from "../services/api";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+/**
+ * Maps the flat medicalHistory string array from ProfileSetup
+ * into the structured MedicalConditions object the backend expects.
+ *
+ * ProfileSetup stores conditions as an array of strings, e.g.:
+ *   ["diabetes", "hypertension", "stroke_history", ...]
+ */
+function buildMedicalConditions(medicalHistory = []) {
+  const h = (medicalHistory || []).map(s => s.toLowerCase().replace(/\s+/g, "_"));
+  return {
+    diabetes:          h.includes("diabetes"),
+    hypertension:      h.includes("hypertension"),
+    stroke_history:    h.includes("stroke_history") || h.includes("stroke"),
+    family_alzheimers: h.includes("family_alzheimers") || h.includes("family_history_alzheimers"),
+    parkinsons_dx:     h.includes("parkinsons_dx") || h.includes("parkinsons") || h.includes("parkinson"),
+    depression:        h.includes("depression"),
+    thyroid_disorder:  h.includes("thyroid_disorder") || h.includes("thyroid"),
+  };
+}
+
+/**
+ * Maps profile sleep data into the FatigueFlags object.
+ * Users who slept < 5 hours are flagged as sleep_deprived.
+ * "poor" sleep quality is flagged as tired.
+ */
+function buildFatigueFlags(profile = {}) {
+  const sleepHours   = parseFloat(profile?.sleepHours) || null;
+  const sleepQuality = profile?.sleepQuality || "normal";
+  return {
+    tired:          sleepQuality === "poor",
+    sleep_deprived: sleepHours !== null && sleepHours < 5,
+    sick:           false,   // Not collected in ProfileSetup — defaults to false
+    anxious:        false,   // Not collected in ProfileSetup — defaults to false
+  };
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
+
 export default function AssessmentHub({ setPage, user }) {
   const {
     speechData, memoryData, reactionData, stroopData, tapData,
@@ -32,6 +72,12 @@ export default function AssessmentHub({ setPage, user }) {
     setLoading(true);
     setError(null);
     try {
+      // ── Build medical_conditions from profile.medicalHistory array ─────────
+      const medicalConditions = buildMedicalConditions(profile?.medicalHistory);
+
+      // ── Build fatigue_flags from profile sleep data ────────────────────────
+      const fatigueFlags = buildFatigueFlags(profile);
+
       const payload = {
         speech_audio:   speechData?.audio_b64 || null,
         memory_results: {
@@ -77,34 +123,45 @@ export default function AssessmentHub({ setPage, user }) {
           family_history:     profile.familyHistory || false,
           existing_diagnosis: profile.existingDiagnosis || false,
           sleep_quality:      profile.sleepQuality || "normal",
+          // ✅ NEW: Medical condition flags (Layer 3 — risk multipliers)
+          medical_conditions: medicalConditions,
+          // ✅ NEW: Fatigue flags (Layer 4 — confidence scoring)
+          fatigue_flags:      fatigueFlags,
         } : null,
-        fluency:    fluencyData || null,
-        digit_span: digitSpanData || null,
+        fluency:    fluencyData    || null,
+        digit_span: digitSpanData  || null,
       };
 
       const result = await submitAnalysis(payload);
       setApiResult(result);
 
-      // ── Save assessment to Firestore ──────────────────────────────────────
+      // ── Save assessment to Firestore ───────────────────────────────────────
       if (user?.uid && user.uid !== "guest") {
         try {
           await addDoc(collection(db, "assessments"), {
-            uid:                  user.uid,
-            createdAt:            new Date().toISOString(),
-            speech_score:         result.speech_score,
-            memory_score:         result.memory_score,
-            reaction_score:       result.reaction_score,
-            executive_score:      result.executive_score,
-            motor_score:          result.motor_score,
-            composite_risk_score: result.composite_risk_score,
-            composite_risk_level: result.composite_risk_level,
-            composite_risk_tier:  result.composite_risk_level,
-            alzheimers_risk:      result.alzheimers_risk,
-            dementia_risk:        result.dementia_risk,
-            parkinsons_risk:      result.parkinsons_risk,
-            risk_levels:          result.risk_levels,
-            fluency_word_count:   fluencyData?.word_count ?? null,
-            digit_max_span:       digitSpanData?.max_forward_span ?? null,
+            uid:                       user.uid,
+            createdAt:                 new Date().toISOString(),
+            speech_score:              result.speech_score,
+            memory_score:              result.memory_score,
+            reaction_score:            result.reaction_score,
+            executive_score:           result.executive_score,
+            motor_score:               result.motor_score,
+            adjusted_memory_score:     result.adjusted_memory_score     ?? null,
+            composite_risk_score:      result.composite_risk_score,
+            composite_risk_level:      result.composite_risk_level,
+            composite_risk_tier:       result.composite_risk_level,
+            // ✅ NEW: Logistic probability fields
+            logistic_risk_probability: result.logistic_risk_probability ?? null,
+            logistic_risk_level:       result.logistic_risk_level       ?? null,
+            // ✅ NEW: Confidence / fatigue fields
+            confidence_score:          result.confidence_score          ?? null,
+            recommend_retest:          result.recommend_retest          ?? null,
+            alzheimers_risk:           result.alzheimers_risk,
+            dementia_risk:             result.dementia_risk,
+            parkinsons_risk:           result.parkinsons_risk,
+            risk_levels:               result.risk_levels,
+            fluency_word_count:        fluencyData?.word_count          ?? null,
+            digit_max_span:            digitSpanData?.max_forward_span  ?? null,
           });
         } catch (fsErr) {
           console.warn("Firestore save failed (non-critical):", fsErr.message);

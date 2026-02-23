@@ -235,17 +235,18 @@ def extract_reaction_features(reaction_times: list, reaction: Optional[ReactionD
                  initiation_delay=round(init_delay, 2))
 
     # CORRECTED: Invert "lower is better" metrics for reaction time
-    # Speed score: penalize only speeds > 400ms (slow). Anything 200-400 is acceptable.
-    # Formula: 100 at 250ms, drops linearly to 0 at 600ms
-    speed_score = max(0, min(100, 100 - ((mean_rt - 250) / 350) * 100))
-    # Variability: std_rt < 30ms is excellent (100), std_rt > 100ms is poor (0)
-    var_score   = max(0, min(100, 100 - (std_rt / 100) * 100))
-    # Consistency penalty: penalize only high drift (fatigue effect) 
-    drift_pen   = min(max(abs(drift) / 15, 0), 20)  # More lenient on drift
-    # Miss penalty: severe only if miss_count > 2
-    miss_pen    = min(miss_count * 15, 30) if miss_count > 0 else 0
-    
-    # Composite reaction score with better balance
+    # Realistic web-based reaction time scoring.
+    # Normal human RT on a screen: 200-700ms. Elderly: up to 900ms.
+    # Speed score: 100 at <=300ms, graceful decline, 0 at >=1200ms
+    speed_score = max(0, min(100, 100 - ((mean_rt - 300) / 900) * 100))
+    # Variability: std_rt < 80ms = excellent (100), > 350ms = poor (0)
+    # Web clicks naturally have higher variance than lab button presses
+    var_score   = max(0, min(100, 100 - (std_rt / 350) * 100))
+    # Drift penalty: only penalize large fatigue effects (> 100ms drift)
+    drift_pen   = min(max((abs(drift) - 100) / 20, 0), 15)
+    # Miss penalty: 1 miss = -8pts, 2 = -16, cap at 25
+    miss_pen    = min(miss_count * 8, 25) if miss_count > 0 else 0
+    # Composite: 60% speed, 30% variability, penalties subtracted
     score = float(np.clip(0.6 * speed_score + 0.3 * var_score - drift_pen - miss_pen + random.uniform(-1, 1), 0, 100))
     return round(score, 2), feats
 
@@ -260,8 +261,12 @@ def extract_executive_features(stroop: Optional[StroopData] = None) -> tuple[flo
 
     feats = dict(stroop_error_rate=round(error_rate, 4), stroop_rt=round(stroop_rt, 2))
 
-    error_pen = min(error_rate * 200, 60)
-    rt_pen    = min((stroop_rt - 400) / 400 * 40, 40) if stroop_rt > 400 else 0
+    # Executive scoring — realistic web-based Stroop norms.
+    # Error rate: 0% errors = 0 penalty, 50% errors = 50 penalty (max 50)
+    error_pen = min(error_rate * 100, 50)
+    # RT penalty: only kicks in above 800ms (slow executive processing)
+    # Normal Stroop RT on web: 500-900ms. Penalize > 800ms.
+    rt_pen    = min((stroop_rt - 800) / 600 * 30, 30) if stroop_rt > 800 else 0
     score = float(np.clip(100 - error_pen - rt_pen + random.uniform(-2, 2), 0, 100))
     return round(score, 2), feats
 
@@ -440,3 +445,109 @@ def compute_composite_risk_score(
         "confidence_upper": round(ci_upper, 2),
         "model_uncertainty": round(uncertainty * 100, 1),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ✅ v3.1 MEDICAL SAFETY HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Education correction table (cognitive reserve)
+_EDUCATION_CORRECTION = {1: +5.0, 2: +3.0, 3: 0.0, 4: 0.0, 5: -2.0}
+
+# Medical condition γ multipliers
+_CONDITION_MULTIPLIERS = {
+    "diabetes": 0.04, "hypertension": 0.05, "stroke_history": 0.08,
+    "family_alzheimers": 0.06, "parkinsons_dx": 0.10,
+    "depression": 0.04, "thyroid_disorder": 0.03,
+}
+
+# Fatigue penalty per flag
+_FATIGUE_FACTORS = {
+    "tired": 0.10, "sleep_deprived": 0.12, "sick": 0.08, "anxious": 0.06,
+}
+
+_FATIGUE_CONFIDENCE_THRESHOLD = 0.75
+_RETEST_MESSAGE = (
+    "Results may be temporarily affected by fatigue. Please retest after adequate rest."
+)
+
+
+def apply_education_memory_adjustment(memory_score: float, education_level: Optional[int]) -> float:
+    """
+    ✅ LAYER 2 — Education correction for cognitive reserve.
+    AdjustedMemory = MemoryScore + β_education (in score points).
+    """
+    if education_level is None:
+        return round(memory_score, 2)
+    correction = _EDUCATION_CORRECTION.get(education_level, 0.0)
+    return round(float(np.clip(memory_score + correction, 0, 100)), 2)
+
+
+def apply_medical_condition_multipliers(base_prob: float, conditions: dict) -> float:
+    """
+    ✅ LAYER 3 — Medical condition risk multipliers.
+    R_final = R × (1 + Σγ_i) capped at 0.95.
+    """
+    gamma_sum = sum(_CONDITION_MULTIPLIERS.get(k, 0.0) for k, v in conditions.items() if v)
+    return float(min(base_prob * (1 + gamma_sum), 0.95))
+
+
+def compute_fatigue_confidence(fatigue_flags: dict, missing_data_ratio: float = 0.0) -> dict:
+    """
+    ✅ LAYER 4 — Confidence = 1 - MissingDataRatio - FatiguePenalty.
+    """
+    fatigue_penalty = sum(_FATIGUE_FACTORS.get(k, 0.0) for k, v in fatigue_flags.items() if v)
+    confidence = round(float(np.clip(1.0 - missing_data_ratio - fatigue_penalty, 0, 1)), 3)
+    recommend_retest = confidence < _FATIGUE_CONFIDENCE_THRESHOLD
+    return {
+        "confidence": confidence,
+        "recommend_retest": recommend_retest,
+        "retest_message": _RETEST_MESSAGE if recommend_retest else None,
+    }
+
+
+def compute_logistic_risk_probability(
+    speech_score: float,
+    memory_score: float,
+    reaction_score: float,
+    age: Optional[int] = None,
+) -> tuple[float, str]:
+    """
+    ✅ Logistic risk probability with age-awareness.
+
+    Converts domain health scores (0–100, higher=healthier) to
+    a probability of cognitive concern via logistic regression.
+
+    Returns (probability, safe_level_label).
+    """
+    import math
+
+    # Apply age normalization factor to health scores before logit
+    age_factor = _age_normalization_factor(age)
+
+    # Invert to risk contributions, normalize to [0,1]
+    r_speech   = (100.0 - speech_score)   / 100.0
+    r_memory   = (100.0 - memory_score)   / 100.0
+    r_reaction = (100.0 - reaction_score) / 100.0
+
+    # Reduce risk contributions for older users (age already accounts for decline)
+    r_speech   /= age_factor
+    r_memory   /= age_factor
+    r_reaction /= age_factor
+
+    # Logit = β0 + β1·speech + β2·memory + β3·reaction
+    beta0 = -1.5
+    logit = beta0 + 0.40 * r_speech * 4 + 0.40 * r_memory * 4 + 0.20 * r_reaction * 4
+    prob = round(1.0 / (1.0 + math.exp(-logit)), 4)
+
+    # Safe non-diagnostic language
+    if prob < 0.25:
+        level = "Within normal range for age group"
+    elif prob < 0.50:
+        level = "Mild concern — monitoring recommended"
+    elif prob < 0.70:
+        level = "Elevated cognitive risk indicators detected"
+    else:
+        level = "Significant indicators present — clinical evaluation advised"
+
+    return prob, level
