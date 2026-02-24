@@ -1,0 +1,38 @@
+{
+  "86e0e245-e7c2-48df-8e95-1ab513619ac7": {
+    "id": "86e0e245-e7c2-48df-8e95-1ab513619ac7",
+    "full_name": "Riya",
+    "email": "riya25@gmail.com",
+    "password_hash": "2bfd67b826d13dedc6381b2d2146c2187afb26bcbeac8d9d7fa355d5ad64ac7f",
+    "role": "patient",
+    "age": 21,
+    "gender": null,
+    "license_number": null,
+    "created_at": "2026-02-22T21:21:45.666270",
+    "last_login": "2026-02-24T10:03:54.674535"
+  },
+  "255c2d27-7840-46fe-85d4-a99b95fb50a2": {
+    "id": "255c2d27-7840-46fe-85d4-a99b95fb50a2",
+    "full_name": "Dev",
+    "email": "dev625@gmail.com",
+    "password_hash": "5b10509dd2e0d5fb7dffe0838bde8f958334a842a0903da1af139b4252e6ea96",
+    "role": "patient",
+    "age": 25,
+    "gender": null,
+    "license_number": null,
+    "created_at": "2026-02-22T21:22:03.091900",
+    "last_login": "2026-02-24T10:08:02.380894"
+  },
+  "850f0279-768d-444e-9674-8bb629071222": {
+    "id": "850f0279-768d-444e-9674-8bb629071222",
+    "full_name": "Admin",
+    "email": "admin@yourdomain.com",
+    "password_hash": "b42054400a15d91afaadf38071207075d7752d572acf5fa5f6cea95a8d490cee",
+    "role": "doctor",
+    "age": null,
+    "gender": null,
+    "license_number": "21",
+    "created_at": "2026-02-22T21:22:59.903383",
+    "last_login": "2026-02-24T10:48:34.705723"
+  }
+}
