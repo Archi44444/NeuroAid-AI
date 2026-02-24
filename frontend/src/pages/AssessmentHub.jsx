@@ -132,6 +132,10 @@ export default function AssessmentHub({ setPage, user }) {
         digit_span: digitSpanData  || null,
       };
 
+      console.log("[AssessmentHub] Submitting payload:", {
+        ...payload,
+        speech_audio: payload.speech_audio ? `[${payload.speech_audio.length} chars]` : null,
+      });
       const result = await submitAnalysis(payload);
       setApiResult(result);
 

@@ -13,7 +13,7 @@ If triggered, returns a safe, empathetic redirect response.
 """
 
 import re
-from typing import dict as Dict
+from typing import Dict
 
 # Patterns that indicate a diagnosis request
 DIAGNOSIS_PATTERNS = [
@@ -79,6 +79,3 @@ def check_guardrails(question: str) -> dict:
 
     return {"blocked": False, "reason": None, "safe_response": None}
 
-
-# Type alias fix
-Dict = dict
