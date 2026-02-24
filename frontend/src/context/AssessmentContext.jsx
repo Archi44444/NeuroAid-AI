@@ -7,35 +7,22 @@ import { createContext, useContext, useState } from "react";
 const Ctx = createContext(null);
 
 export function AssessmentProvider({ children }) {
-  const [speechData,    setSpeechData]    = useState(null);
-  const [memoryData,    setMemoryData]    = useState(null);
-  const [reactionData,  setReactionData]  = useState(null);
-  const [stroopData,    setStroopData]    = useState(null);
-  const [tapData,       setTapData]       = useState(null);
-  const [fluencyData,   setFluencyData]   = useState(null);
-  const [digitSpanData, setDigitSpanData] = useState(null);
-  const [profile,      setProfile]      = useState(() => {
-    // Try to load from localStorage for persistence
-    const stored = localStorage.getItem('neuroaid_profile');
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [speechData,   setSpeechData]   = useState(null);
+  const [memoryData,   setMemoryData]   = useState(null);
+  const [reactionData, setReactionData] = useState(null);
+  const [stroopData,   setStroopData]   = useState(null);
+  const [tapData,      setTapData]      = useState(null);
+  const [profile,      setProfile]      = useState(null);
   const [apiResult,    setApiResult]    = useState(null);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
 
-  // Persist profile to localStorage
-  function updateProfile(newProfile) {
-    setProfile(newProfile);
-    localStorage.setItem('neuroaid_profile', JSON.stringify(newProfile));
-  }
-
-  const completedCount = [speechData, memoryData, reactionData, stroopData, tapData, fluencyData, digitSpanData].filter(Boolean).length;
+  const completedCount = [speechData, memoryData, reactionData, stroopData, tapData].filter(Boolean).length;
 
   function reset() {
     setSpeechData(null); setMemoryData(null); setReactionData(null);
-    setStroopData(null); setTapData(null); setFluencyData(null); setDigitSpanData(null);
+    setStroopData(null); setTapData(null);
     setApiResult(null);  setError(null);
-    setProfile(null); localStorage.removeItem('neuroaid_profile');
   }
 
   return (
@@ -45,9 +32,7 @@ export function AssessmentProvider({ children }) {
       reactionData, setReactionData,
       stroopData,   setStroopData,
       tapData,      setTapData,
-      fluencyData,  setFluencyData,
-      digitSpanData, setDigitSpanData,
-      profile,      setProfile: updateProfile,
+      profile,      setProfile,
       apiResult,    setApiResult,
       loading,      setLoading,
       error,        setError,
