@@ -1,17 +1,28 @@
+"""
+NeuroAid Backend — main.py
+===========================
+FastAPI entry point. Mounts /api/analyze and /api/chat routers.
+"""
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from routers import analyze, chat
-from utils.logger import log_info
 from config import ALLOWED_ORIGINS
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="NeuroAid API",
-    description="Backend for NeuroAid cognitive risk assessment",
-    version="1.0.0",
+    description=(
+        "Early Cognitive Risk Indicator backend. "
+        "This tool does NOT provide medical diagnosis — it provides early risk signals for further evaluation."
+    ),
+    version="3.2.0",
 )
 
-# ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -20,20 +31,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(analyze.router, prefix="/api")
-app.include_router(chat.router, prefix="/api")   # ✅ NEW: RAG educational chatbot
+app.include_router(chat.router, prefix="/api")
 
-# ── Global exception handler ──────────────────────────────────────────────────
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    log_info(f"Unhandled error on {request.url}: {exc}")
+    logger.error(f"Unhandled error on {request.url}: {exc}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "error": str(exc)},
     )
 
-# ── Health check ──────────────────────────────────────────────────────────────
-@app.get("/health")
+
+@app.get("/health", tags=["Health"])
 def health():
-    return {"status": "ok", "service": "NeuroAid Backend"}
+    return {
+        "status": "ok",
+        "service": "NeuroAid Backend",
+        "version": "3.2.0",
+        "note": "This tool identifies early cognitive risk indicators — not a clinical diagnosis.",
+    }

@@ -21,7 +21,7 @@ Architecture:
 import logging
 from typing import Optional
 
-from knowledge_base.guardrails import check_guardrails, GuardrailViolation
+from knowledge_base.guardrails import check_guardrails
 from knowledge_base.index import retrieve_relevant_chunks
 
 logger = logging.getLogger(__name__)
