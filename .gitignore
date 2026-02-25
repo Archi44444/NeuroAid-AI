@@ -1,37 +1,32 @@
-# ── Environment files (NEVER commit these) ────────────────────────────────────
-.env
-.env.local
-.env.production
-.env.staging
-
-# ── Node / Frontend ───────────────────────────────────────────────────────────
-node_modules/
-dist/
-.vite/
-
-# ── Python / Backend & AI Service ─────────────────────────────────────────────
+# Python
 __pycache__/
-*.py[cod]
+*.pyc
 *.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
 .venv/
 venv/
 env/
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
 
-# ── HuggingFace model cache ────────────────────────────────────────────────────
-hf_cache/
-models/weights/
-*.onnx
-*.pt
-*.bin
+# Environment
+.env
+.env.*
+!.env.example
 
-# ── OS ────────────────────────────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
+# Data (don't commit user data)
+backend/data/users.json
+backend/data/sessions.json
+backend/data/results.json
+backend/data/messages.json
 
-# ── Editor ────────────────────────────────────────────────────────────────────
-.vscode/
+# Node
+node_modules/
+frontend/dist/
+
+# IDE
 .idea/
+.vscode/
 *.swp

@@ -130,40 +130,71 @@ def _prob_to_level(prob: float) -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def extract_speech_features(audio_b64=None, speech: Optional[SpeechData] = None) -> tuple[float, dict]:
+    """
+    Extract speech features from structured SpeechData payload.
+    When the frontend uses the Web Speech API, all values are real measurements.
+    Fallback mode uses conservative estimates — no random noise.
+    """
     if speech:
         wpm       = speech.wpm or _estimate_wpm(audio_b64)
-        speed_dev = speech.speed_deviation or random.uniform(5, 20)
-        spvar     = speech.speech_speed_variability or random.uniform(3, 15)
+        speed_dev = speech.speed_deviation if speech.speed_deviation is not None else _estimate_speed_dev(wpm)
+        spvar     = speech.speech_speed_variability if speech.speech_speed_variability is not None else speed_dev
         pause_r   = speech.pause_ratio if speech.pause_ratio is not None else 0.15
         compl_r   = speech.completion_ratio if speech.completion_ratio is not None else 1.0
         restarts  = speech.restart_count or 0
-        start_del = speech.speech_start_delay or random.uniform(0.5, 3.0)
+        start_del = speech.speech_start_delay if speech.speech_start_delay is not None else 0.8
     else:
         wpm       = _estimate_wpm(audio_b64)
-        speed_dev = random.uniform(5, 20)
-        spvar     = random.uniform(3, 15)
-        pause_r   = random.uniform(0.10, 0.25)
-        compl_r   = random.uniform(0.80, 1.0)
+        speed_dev = _estimate_speed_dev(wpm)
+        spvar     = speed_dev
+        pause_r   = 0.18
+        compl_r   = 0.90
         restarts  = 0
-        start_del = random.uniform(0.5, 3.0)
+        start_del = 1.0
 
-    feats = dict(wpm=round(wpm, 2), speed_deviation=round(speed_dev, 2),
-                 speech_variability=round(spvar, 2), pause_ratio=round(pause_r, 4),
-                 speech_start_delay=round(start_del, 2))
+    feats = dict(
+        wpm=round(wpm, 2),
+        speed_deviation=round(speed_dev, 2),
+        speech_variability=round(spvar, 2),
+        pause_ratio=round(pause_r, 4),
+        speech_start_delay=round(start_del, 2),
+    )
 
-    wpm_score    = 100 - abs(wpm - 140) / 140 * 50
-    var_pen      = min(spvar * 1.5, 30)
-    pause_pen    = min(pause_r * 80, 30)
-    compl_bonus  = compl_r * 20
-    restart_pen  = min(restarts * 5, 20)
-    score = float(np.clip(wpm_score - var_pen - pause_pen + compl_bonus - restart_pen + random.uniform(-2, 2), 0, 100))
+    # WPM score: optimal range 100-180 wpm for read-aloud tasks
+    if 100 <= wpm <= 180:
+        wpm_score = 100.0 - abs(wpm - 140) / 40 * 15
+    elif wpm < 100:
+        wpm_score = max(0.0, 60.0 - (100 - wpm) * 1.2)
+    else:
+        wpm_score = max(0.0, 85.0 - (wpm - 180) * 0.8)
+
+    pause_pen   = min(pause_r * 100, 40)          # high pause ratio = word-finding difficulty
+    var_pen     = min(spvar / 3.0, 25)             # variability = less fluency
+    compl_bonus = compl_r * 15                     # finishing passage = good
+    restart_pen = min(restarts * 6, 20)
+    delay_pen   = min(max(0, (start_del - 0.5) * 5), 15)
+
+    score = float(np.clip(
+        wpm_score - pause_pen - var_pen + compl_bonus - restart_pen - delay_pen,
+        0, 100
+    ))
     return round(score, 2), feats
 
 
 def _estimate_wpm(audio_b64) -> float:
+    """Conservative fallback WPM when no transcription is available."""
     if not audio_b64:
-        return round(random.uniform(110, 160), 1)
-    return round(120 + 40 * min(len(audio_b64) / 10_000, 1.0) + random.uniform(-10, 10), 1)
+        return 120.0
+    length_factor = min(len(audio_b64) / 10_000, 1.0)
+    return round(100 + 40 * length_factor, 1)
+
+
+def _estimate_speed_dev(wpm: float) -> float:
+    """Estimate speed deviation from WPM."""
+    if wpm < 80:  return 20.0
+    if wpm < 120: return 15.0
+    if wpm < 160: return 10.0
+    return 14.0
 
 
 def extract_memory_features(memory_results: dict, memory: Optional[MemoryData] = None) -> tuple[float, dict]:
