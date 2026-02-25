@@ -136,8 +136,7 @@ def extract_speech_features(audio_b64=None, speech: Optional[SpeechData] = None)
     Fallback mode uses conservative estimates — no random noise.
     """
     if speech:
-        # If wpm is 0 or very low (likely not measured), use audio estimate
-        wpm       = speech.wpm if (speech.wpm and speech.wpm > 10) else _estimate_wpm(audio_b64)
+        wpm       = speech.wpm if speech.wpm and speech.wpm > 0 else _estimate_wpm(audio_b64)
         speed_dev = speech.speed_deviation if speech.speed_deviation is not None else _estimate_speed_dev(wpm)
         spvar     = speech.speech_speed_variability if speech.speech_speed_variability is not None else speed_dev
         pause_r   = speech.pause_ratio if speech.pause_ratio is not None else 0.15

@@ -19,16 +19,50 @@ function topRisk(p) {
 }
 
 export default function DoctorHome({ setPage, setSelectedPatient }) {
-  const [patients, setPatients] = useState([]);
-  const [loading,  setLoading]  = useState(true);
+  const [patients,         setPatients]         = useState([]);
+  const [pendingRequests,  setPendingRequests]  = useState([]);
+  const [loading,          setLoading]          = useState(true);
+  const [actionLoading,    setActionLoading]    = useState(null);
+  const [actionMsg,        setActionMsg]        = useState(null);
   const doctor = getUser();
 
-  useEffect(() => {
-    getPatients()
-      .then(list => setPatients(list || []))
-      .catch(() => setPatients([]))
-      .finally(() => setLoading(false));
-  }, []);
+  async function loadData() {
+    try {
+      const [list, pendingData] = await Promise.all([
+        getPatients(),
+        fetch("/api/auth/doctors/pending-requests", {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("neuroaid_token")}` }
+        }).then(r => r.ok ? r.json() : { pending_requests: [] }),
+      ]);
+      setPatients(list || []);
+      setPendingRequests(pendingData.pending_requests || []);
+    } catch (e) {
+      setPatients([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleApproval(patientId, action) {
+    setActionLoading(patientId + action);
+    setActionMsg(null);
+    try {
+      const res = await fetch("/api/auth/doctors/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("neuroaid_token")}` },
+        body: JSON.stringify({ patient_id: patientId, action }),
+      });
+      const data = await res.json();
+      setActionMsg(data.message);
+      await loadData();
+    } catch (e) {
+      setActionMsg("Action failed. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  useEffect(() => { loadData(); }, []);
 
   const withResults = patients.filter(p => p.lastResult);
   const highRisk    = patients.filter(p => topRisk(p) === "High");
@@ -75,28 +109,70 @@ export default function DoctorHome({ setPage, setSelectedPatient }) {
             ))}
           </div>
 
-          {/* Neural Pattern Anomaly Indices */}
+          {/* ── Pending Enrollment Requests ── */}
+          {pendingRequests.length > 0 && (
+            <DarkCard style={{ padding: 24, marginBottom: 20, border: "1px solid rgba(245,158,11,0.25)" }} hover={false}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, color: T.amber, fontSize: 14 }}>
+                  ⏳ Pending Enrollment Requests ({pendingRequests.length})
+                </div>
+              </div>
+              {actionMsg && (
+                <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)", color: T.green, fontSize: 13 }}>
+                  ✓ {actionMsg}
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {pendingRequests.map(req => (
+                  <div key={req.patient_id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", borderRadius: 12, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: T.cream, fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                      {(req.patient_name?.[0] || "?").toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, color: T.cream, fontSize: 14 }}>{req.patient_name}</div>
+                      <div style={{ fontSize: 12, color: T.creamFaint }}>{req.patient_email}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => handleApproval(req.patient_id, "approve")}
+                        disabled={!!actionLoading}
+                        style={{ padding: "7px 16px", borderRadius: 20, border: "none", background: T.green, color: "#0a0a0a", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", opacity: actionLoading === req.patient_id + "approve" ? 0.6 : 1 }}
+                      >
+                        {actionLoading === req.patient_id + "approve" ? "…" : "✓ Approve"}
+                      </button>
+                      <button
+                        onClick={() => handleApproval(req.patient_id, "reject")}
+                        disabled={!!actionLoading}
+                        style={{ padding: "7px 16px", borderRadius: 20, border: "1px solid rgba(232,64,64,0.3)", background: "transparent", color: T.red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", opacity: actionLoading === req.patient_id + "reject" ? 0.6 : 1 }}
+                      >
+                        {actionLoading === req.patient_id + "reject" ? "…" : "✕ Reject"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DarkCard>
+          )}
+
+          {/* Average neural pattern anomaly scores across all patients */}
           {withResults.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
               {[
-                { key: "alzheimers_risk", label: "Avg. Memory Deviation Index", icon: "🧠", color: "#a78bfa", desc: "Episodic & working memory divergence" },
-                { key: "dementia_risk",   label: "Avg. Executive Drift Score",  icon: "🎯", color: T.amber,   desc: "Inhibitory control & processing speed" },
-                { key: "parkinsons_risk", label: "Avg. Motor Anomaly Index",    icon: "⚙️", color: T.blue,    desc: "Motor rhythm & coordination patterns" },
+                { key: "alzheimers_risk", label: "Avg. Memory Deviation Index", color: "#a78bfa" },
+                { key: "dementia_risk",   label: "Avg. Executive Drift Score",  color: T.amber   },
+                { key: "parkinsons_risk", label: "Avg. Motor Anomaly Index",    color: T.blue    },
               ].map(d => {
                 const pct = avg(d.key);
                 return (
                   <DarkCard key={d.key} style={{ padding: 22, border: `1px solid ${d.color}20` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <span style={{ fontSize: 18 }}>{d.icon}</span>
-                      <div style={{ fontSize: 10, color: T.creamFaint, textTransform: "uppercase", letterSpacing: 1, lineHeight: 1.3 }}>{d.label}</div>
-                    </div>
+                    <div style={{ fontSize: 11, color: T.creamFaint, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>{d.label}</div>
                     <div style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 900, fontSize: 44, color: d.color, lineHeight: 1, marginBottom: 10 }}>
                       {pct}<span style={{ fontSize: 16, color: "#555" }}>%</span>
                     </div>
                     <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.07)" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: d.color, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontSize: 10, color: "#555", marginTop: 8 }}>{d.desc} · {withResults.length} patient{withResults.length !== 1 ? "s" : ""}</div>
+                    <div style={{ fontSize: 11, color: "#555", marginTop: 8 }}>across {withResults.length} assessed patient{withResults.length !== 1 ? "s" : ""}</div>
                   </DarkCard>
                 );
               })}
@@ -125,9 +201,9 @@ export default function DoctorHome({ setPage, setSelectedPatient }) {
                       </div>
                       {last && (
                         <div style={{ display: "flex", gap: 16, fontSize: 12, color: T.creamFaint }}>
-                          <span>Alz: <strong style={{ color: "#a78bfa" }}>{Math.round((last.alzheimers_risk || 0) * 100)}%</strong></span>
-                          <span>Dem: <strong style={{ color: T.amber }}>{Math.round((last.dementia_risk || 0) * 100)}%</strong></span>
-                          <span>Park: <strong style={{ color: T.blue }}>{Math.round((last.parkinsons_risk || 0) * 100)}%</strong></span>
+                          <span>Mem: <strong style={{ color: "#a78bfa" }}>{Math.round((last.alzheimers_risk || 0) * 100)}%</strong></span>
+                          <span>Exec: <strong style={{ color: T.amber }}>{Math.round((last.dementia_risk || 0) * 100)}%</strong></span>
+                          <span>Motor: <strong style={{ color: T.blue }}>{Math.round((last.parkinsons_risk || 0) * 100)}%</strong></span>
                         </div>
                       )}
                       <span style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>View →</span>

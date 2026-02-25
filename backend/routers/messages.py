@@ -68,6 +68,17 @@ def send_message(body: dict, authorization: str = Header(...)):
     if recipient_id not in users:
         raise HTTPException(status_code=404, detail=f"Recipient not found.")
 
+    # Enforce enrollment-based messaging access
+    sender_data = users.get(user["id"], {})
+    if user.get("role") == "doctor":
+        enrolled_ids = set(sender_data.get("patient_list", []))
+        if recipient_id not in enrolled_ids:
+            raise HTTPException(status_code=403, detail="You can only message your enrolled patients.")
+    else:
+        assigned_doctor = sender_data.get("assigned_doctor_id")
+        if recipient_id != assigned_doctor:
+            raise HTTPException(status_code=403, detail="You can only message your assigned doctor.")
+
     msgs = _load_msgs()
     msg  = {
         "id":           str(uuid.uuid4()),
@@ -103,7 +114,31 @@ def get_conversations(authorization: str = Header(...)):
     msgs  = _load_msgs()
     users = _load(USERS_FILE)
 
+    # Determine which users this person is allowed to message (enrollment-based)
+    if user.get("role") == "doctor":
+        # Doctor sees only their approved enrolled patients
+        doctor_record  = users.get(uid, {})
+        allowed_ids    = set(doctor_record.get("patient_list", []))
+    else:
+        # Patient sees only their assigned (approved) doctor
+        patient_record = users.get(uid, {})
+        assigned       = patient_record.get("assigned_doctor_id")
+        allowed_ids    = {assigned} if assigned else set()
+
     partners = {}
+    # First: seed all allowed contacts so they always appear (even with no messages)
+    for other_id in allowed_ids:
+        u = users.get(other_id, {})
+        if u:
+            partners[other_id] = {
+                "user_id":   other_id,
+                "full_name": u.get("full_name", "Unknown"),
+                "role":      u.get("role", "patient"),
+                "last_msg":  None,
+                "last_ts":   "",
+            }
+
+    # Then: layer in actual message data for allowed partners
     for m in msgs:
         if uid not in m.get("deleted_by", []):
             if m["sender_id"] == uid:
@@ -112,8 +147,9 @@ def get_conversations(authorization: str = Header(...)):
                 other = m["sender_id"]
             else:
                 continue
-            if other and other != uid:
-                if other not in partners or m["timestamp"] > partners[other]["last_ts"]:
+            # Only show messages with allowed partners
+            if other and other != uid and other in allowed_ids:
+                if other not in partners or m["timestamp"] > partners[other].get("last_ts", ""):
                     u = users.get(other, {})
                     partners[other] = {
                         "user_id":   other,
@@ -122,18 +158,6 @@ def get_conversations(authorization: str = Header(...)):
                         "last_msg":  m["text"],
                         "last_ts":   m["timestamp"],
                     }
-
-    # Doctors always see all patients listed
-    if user.get("role") == "doctor":
-        for u in users.values():
-            if u.get("role", "patient") == "patient" and u["id"] not in partners:
-                partners[u["id"]] = {
-                    "user_id":   u["id"],
-                    "full_name": u.get("full_name", "Unknown"),
-                    "role":      "patient",
-                    "last_msg":  None,
-                    "last_ts":   "",
-                }
 
     convs = sorted(partners.values(), key=lambda x: x["last_ts"], reverse=True)
     return {"conversations": convs}

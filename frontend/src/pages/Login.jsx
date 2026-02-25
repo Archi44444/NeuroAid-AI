@@ -3,46 +3,57 @@ import { T } from "../utils/theme";
 import { DarkCard, Btn, Stars } from "../components/RiskDashboard";
 import { login, register } from "../services/api";
 
-const SPECIALIZATIONS = ["Neurology","Psychiatry","Geriatrics","Internal Medicine","General Practice","Neuropsychology"];
-const CONSULTATION_MODES = ["Online","Offline","Both"];
-const SLOTS = ["Mon AM","Mon PM","Tue AM","Tue PM","Wed AM","Wed PM","Thu AM","Thu PM","Fri AM","Fri PM"];
+const LIME = "#C8F135";
 
 export default function LoginPage({ setView, setRole, setCurrentUser, onAuthSuccess }) {
-  const [mode, setMode]         = useState("user");
-  const [tab, setTab]           = useState("login");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [doctorStep, setDoctorStep] = useState(1);
+  const [mode, setMode]     = useState("user");   // "user" | "doctor"
+  const [tab, setTab]       = useState("login");  // "login" | "register"
+  const [step, setStep]     = useState(1);        // doctor register: step 1 or 2
+  const [error, setError]   = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [age, setAge]           = useState("");
-  const [phone, setPhone]       = useState("");
-  const [gender, setGender]     = useState("");
-  const [license, setLicense]   = useState("");
+  // Shared fields
+  const [fullName,  setFullName]  = useState("");
+  const [email,     setEmail]     = useState("");
+  const [password,  setPassword]  = useState("");
+
+  // Doctor-specific fields
+  const [license,       setLicense]       = useState("");
   const [specialization, setSpecialization] = useState("");
-  const [experience, setExperience] = useState("");
-  const [hospital, setHospital] = useState("");
-  const [location, setLocation] = useState("");
-  const [consultMode, setConsultMode] = useState("");
-  const [bio, setBio]           = useState("");
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [hospital,      setHospital]      = useState("");
+  const [location,      setLocation]      = useState("");
+  const [yearsExp,      setYearsExp]      = useState("");
+  const [consultMode,   setConsultMode]   = useState("Both");
+  const [bio,           setBio]           = useState("");
 
-  function toggleSlot(slot) {
-    setAvailableSlots(prev => prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]);
-  }
+  // Patient-specific
+  const [age, setAge] = useState("");
 
   const backendRole = mode === "doctor" ? "doctor" : "patient";
+  const isDoctorRegister = mode === "doctor" && tab === "register";
 
   async function handleSubmit() {
     setError("");
+
     if (!email.trim() || !password.trim()) return setError("Email and password are required.");
     const emailRe = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
     if (!emailRe.test(email.trim())) return setError("Please enter a valid email address.");
-    if (tab === "register" && !fullName.trim()) return setError("Full name is required.");
-    if (tab === "register" && password.length < 6) return setError("Password must be at least 6 characters.");
-    if (tab === "register" && mode === "doctor" && !license.trim()) return setError("Medical license number is required.");
+
+    if (tab === "register") {
+      if (!fullName.trim()) return setError("Full name is required.");
+      if (password.length < 6) return setError("Password must be at least 6 characters.");
+
+      if (mode === "doctor") {
+        if (step === 1) {
+          if (!license.trim()) return setError("Medical license number is required.");
+          if (!specialization) return setError("Please select a specialization.");
+          setStep(2);
+          return;
+        }
+        // step 2 - hospital, location, bio
+        if (!hospital.trim()) return setError("Hospital / clinic name is required.");
+      }
+    }
 
     setLoading(true);
     try {
@@ -50,16 +61,27 @@ export default function LoginPage({ setView, setRole, setCurrentUser, onAuthSucc
       if (tab === "login") {
         result = await login(email.trim(), password, backendRole);
       } else {
-        const extraData = mode === "doctor"
-          ? { specialization, experience, hospital, location, consultation_mode: consultMode, bio, max_patients: 10, available_slots: availableSlots }
-          : { age: age ? parseInt(age) : undefined, gender, phone };
-        result = await register({ full_name: fullName.trim(), email: email.trim(), password, role: backendRole, license_number: license.trim() || undefined, ...extraData });
+        result = await register({
+          full_name:      fullName.trim(),
+          email:          email.trim(),
+          password,
+          role:           backendRole,
+          age:            age ? parseInt(age) : undefined,
+          license_number: license.trim() || undefined,
+          specialization: specialization || undefined,
+          hospital:       hospital.trim() || undefined,
+          location:       location.trim() || undefined,
+          years_experience: yearsExp ? parseInt(yearsExp) : undefined,
+          consultation_mode: consultMode || undefined,
+          bio:            bio.trim() || undefined,
+          max_patients:   10,
+        });
       }
-      const isNewUser = tab === "register";
-      if (setCurrentUser) setCurrentUser(result.user);
+
       if (onAuthSuccess) {
-        onAuthSuccess(result.user, mode, isNewUser);
+        onAuthSuccess(result.user, backendRole, tab === "register");
       } else {
+        if (setCurrentUser) setCurrentUser(result.user);
         setRole(mode);
         setView(mode === "doctor" ? "doctor-dashboard" : "dashboard");
       }
@@ -70,164 +92,180 @@ export default function LoginPage({ setView, setRole, setCurrentUser, onAuthSucc
     }
   }
 
-  function switchMode(m) {
-    setMode(m); setError(""); setDoctorStep(1);
+  function switchMode(newMode) {
+    setMode(newMode); setError(""); setStep(1);
     setFullName(""); setEmail(""); setPassword(""); setLicense(""); setAge("");
-    setPhone(""); setGender(""); setSpecialization(""); setExperience("");
-    setHospital(""); setLocation(""); setConsultMode(""); setBio(""); setAvailableSlots([]);
+    setSpecialization(""); setHospital(""); setLocation(""); setYearsExp(""); setBio("");
   }
 
-  const inp = { padding:"11px 14px",borderRadius:10,fontSize:14,fontFamily:"'DM Sans',sans-serif",width:"100%",background:T.bg2,border:`1px solid ${T.cardBorder}`,color:T.cream,outline:"none" };
-  const lbl = { fontSize:11,color:T.creamFaint,marginBottom:5,display:"block",textTransform:"uppercase",letterSpacing:0.8 };
-  const chip = (a) => ({ padding:"7px 14px",borderRadius:50,border:`1px solid ${a?T.red:T.cardBorder}`,background:a?"rgba(232,64,64,0.15)":T.bg3,color:a?T.red:T.creamDim,fontSize:12,cursor:"pointer",fontWeight:a?600:400,transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif" });
+  function switchTab(newTab) { setTab(newTab); setError(""); setStep(1); }
 
-  const isDR = tab === "register" && mode === "doctor";
+  const inputStyle = { padding: "12px 15px", borderRadius: 11, fontSize: 14, fontFamily: "'DM Sans',sans-serif", width: "100%" };
+  const selectStyle = { ...inputStyle, background: "#1a1a1a", color: T.cream, border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer", colorScheme: "dark", outline: "none" };
+  const labelStyle = { fontSize: 11, color: T.creamFaint, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600 };
+
+  const SPECIALIZATIONS = ["Neurology","Psychiatry","Geriatrics","Neuropsychology","Internal Medicine","General Practice","Other"];
+  const CONSULT_MODES   = ["Online","Offline","Both"];
 
   return (
-    <div style={{ minHeight:"100vh",background:`radial-gradient(ellipse 80% 60% at 50% -10%,rgba(200,40,40,0.20) 0%,transparent 60%),${T.bg}`,display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'DM Sans',sans-serif",position:"relative",overflow:"hidden" }}>
+    <div style={{ minHeight: "100vh", background: `radial-gradient(ellipse 80% 60% at 50% -10%, rgba(200,40,40,0.20) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 0% 100%, rgba(245,158,11,0.08) 0%, transparent 55%), ${T.bg}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'DM Sans',sans-serif", position: "relative", overflow: "hidden" }}>
       <Stars count={60} />
-      <div style={{ width:"100%",maxWidth:isDR?560:420,position:"relative",zIndex:2 }}>
-        <div style={{ textAlign:"center",marginBottom:28 }}>
-          <div style={{ width:46,height:46,borderRadius:14,background:"linear-gradient(135deg,rgba(232,64,64,0.9),rgba(200,36,36,0.95))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,margin:"0 auto 14px",boxShadow:"0 0 32px rgba(232,64,64,0.45)" }}>⬡</div>
-          <div style={{ fontFamily:"'Instrument Serif',serif",fontSize:24,color:T.cream }}>NeuroAid</div>
-          <div style={{ color:T.creamFaint,fontSize:13,marginTop:4 }}>Cognitive AI Platform</div>
+
+      <div style={{ width: "100%", maxWidth: isDoctorRegister ? 500 : 420, position: "relative", zIndex: 2 }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,rgba(232,64,64,0.9),rgba(200,36,36,0.95))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, margin: "0 auto 14px", boxShadow: `0 0 32px rgba(232,64,64,0.45), inset 0 1px 0 rgba(255,255,255,0.16)` }}>⬡</div>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: 26, color: T.cream }}>NeuroAid</div>
+          <div style={{ color: T.creamFaint, fontSize: 13, marginTop: 4 }}>Cognitive AI Platform</div>
         </div>
 
-        <DarkCard style={{ padding:32 }} hover={false}>
-          <div style={{ display:"flex",background:"rgba(255,255,255,0.04)",borderRadius:50,padding:4,marginBottom:24,border:"1px solid rgba(255,255,255,0.08)" }}>
-            {[{key:"user",label:"👤 Patient"},{key:"doctor",label:"🩺 Doctor"}].map(r=>(
-              <button key={r.key} onClick={()=>switchMode(r.key)} style={{ flex:1,padding:"9px 0",borderRadius:50,border:"none",background:mode===r.key?"linear-gradient(135deg,rgba(232,64,64,0.88),rgba(200,36,36,0.95))":"transparent",color:mode===r.key?"#fff":T.creamFaint,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s" }}>{r.label}</button>
+        <DarkCard style={{ padding: 32 }} hover={false}>
+
+          {/* Role switcher */}
+          <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 50, padding: 4, marginBottom: 24, border: "1px solid rgba(255,255,255,0.08)" }}>
+            {[{ key: "user", label: "👤 Patient" }, { key: "doctor", label: "🩺 Doctor" }].map(r => (
+              <button key={r.key} onClick={() => switchMode(r.key)} style={{ flex: 1, padding: "9px 0", borderRadius: 50, border: "none", background: mode === r.key ? "linear-gradient(135deg,rgba(232,64,64,0.88),rgba(200,36,36,0.95))" : "transparent", color: mode === r.key ? "#fff" : T.creamFaint, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", transition: "all 0.2s" }}>
+                {r.label}
+              </button>
             ))}
           </div>
 
-          <div style={{ display:"flex",marginBottom:24,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-            {["login","register"].map(t=>(
-              <button key={t} onClick={()=>{ setTab(t); setError(""); setDoctorStep(1); }} style={{ flex:1,padding:"8px 0",border:"none",background:"transparent",color:tab===t?T.cream:T.creamFaint,fontWeight:tab===t?700:400,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",borderBottom:tab===t?`2px solid ${T.red}`:"2px solid transparent",marginBottom:-1,transition:"all 0.2s",textTransform:"capitalize" }}>{t}</button>
+          {/* Role hint */}
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "9px 14px", marginBottom: 20, fontSize: 12, color: T.creamFaint, border: "1px solid rgba(255,255,255,0.07)", textAlign: "center" }}>
+            {mode === "doctor" ? "🩺 Doctor accounts supervise patients and view neural pattern analytics" : "👤 Patient accounts take cognitive assessments and track progress"}
+          </div>
+
+          {/* Login / Register tabs */}
+          <div style={{ display: "flex", marginBottom: 22, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            {["login", "register"].map(t => (
+              <button key={t} onClick={() => switchTab(t)} style={{ flex: 1, padding: "8px 0", border: "none", background: "transparent", color: tab === t ? T.cream : T.creamFaint, fontWeight: tab === t ? 700 : 400, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", borderBottom: tab === t ? `2px solid ${T.red}` : "2px solid transparent", marginBottom: -1, transition: "all 0.2s", textTransform: "capitalize" }}>{t}</button>
             ))}
           </div>
 
-          {isDR && (
-            <div style={{ display:"flex",gap:6,marginBottom:20 }}>
-              {[1,2].map(s=>(
-                <div key={s} style={{ flex:1,height:3,borderRadius:2,background:s<=doctorStep?T.red:"rgba(255,255,255,0.08)",transition:"background 0.3s" }} />
+          {/* ── Doctor Register: Step indicator ── */}
+          {isDoctorRegister && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+              {["Account Details", "Clinic Info"].map((label, i) => (
+                <div key={i} style={{ flex: 1 }}>
+                  <div style={{ height: 3, borderRadius: 2, background: i < step ? T.red : "rgba(255,255,255,0.08)", marginBottom: 4 }} />
+                  <div style={{ fontSize: 10, color: i < step ? T.red : "rgba(255,255,255,0.25)", fontWeight: 600 }}>{label}</div>
+                </div>
               ))}
             </div>
           )}
 
-          <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
+          {/* Fields */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-            {/* PATIENT REGISTER */}
-            {tab==="register" && mode==="user" && (<>
-              <div><label style={lbl}>Full Name</label><input placeholder="e.g. Jane Smith" value={fullName} onChange={e=>setFullName(e.target.value)} style={inp} /></div>
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-                <div><label style={lbl}>Email</label><input type="email" placeholder="you@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Phone</label><input placeholder="+1 555 000 0000" value={phone} onChange={e=>setPhone(e.target.value)} style={inp} /></div>
-              </div>
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-                <div><label style={lbl}>Age</label><input type="number" min="18" max="100" placeholder="e.g. 45" value={age} onChange={e=>setAge(e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Password</label><input type="password" placeholder="6+ characters" value={password} onChange={e=>setPassword(e.target.value)} style={inp} /></div>
-              </div>
+            {/* ── Shared: Name, Email, Password ── */}
+            {(!isDoctorRegister || step === 1) && tab === "register" && (
               <div>
-                <label style={lbl}>Gender</label>
-                <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-                  {["Male","Female","Non-binary","Prefer not to say"].map(g=>(
-                    <button key={g} style={chip(gender===g)} onClick={()=>setGender(g)}>{g}</button>
-                  ))}
-                </div>
+                <label style={labelStyle}>Full Name *</label>
+                <input placeholder="Dr. Jane Smith" value={fullName} onChange={e => setFullName(e.target.value)} className="glass-input" style={inputStyle} />
               </div>
-            </>)}
-
-            {/* DOCTOR REGISTER STEP 1 */}
-            {isDR && doctorStep===1 && (<>
-              <div><label style={lbl}>Full Name</label><input placeholder="Dr. Jane Smith" value={fullName} onChange={e=>setFullName(e.target.value)} style={inp} /></div>
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-                <div><label style={lbl}>Email</label><input type="email" placeholder="you@hospital.com" value={email} onChange={e=>setEmail(e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Password</label><input type="password" placeholder="6+ characters" value={password} onChange={e=>setPassword(e.target.value)} style={inp} /></div>
-              </div>
-              <div>
-                <label style={lbl}>Specialization</label>
-                <select value={specialization} onChange={e=>setSpecialization(e.target.value)} style={{ ...inp, background:'#1a1a1a', colorScheme:'dark' }}>
-                  <option value="">Select specialization…</option>
-                  {SPECIALIZATIONS.map(s=><option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-                <div><label style={lbl}>Years of Experience</label><input type="number" min="0" max="60" placeholder="e.g. 12" value={experience} onChange={e=>setExperience(e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Medical License No.</label><input placeholder="e.g. ML-123456" value={license} onChange={e=>setLicense(e.target.value)} style={inp} /></div>
-              </div>
-              <div><label style={lbl}>Hospital / Clinic Name</label><input placeholder="e.g. Memorial Neurological Center" value={hospital} onChange={e=>setHospital(e.target.value)} style={inp} /></div>
-              <div><label style={lbl}>Location</label><input placeholder="e.g. Boston, MA" value={location} onChange={e=>setLocation(e.target.value)} style={inp} /></div>
-            </>)}
-
-            {/* DOCTOR REGISTER STEP 2 */}
-            {isDR && doctorStep===2 && (<>
-              <div>
-                <label style={lbl}>Consultation Mode</label>
-                <div style={{ display:"flex",gap:8 }}>
-                  {CONSULTATION_MODES.map(m=>(
-                    <button key={m} style={{ ...chip(consultMode===m),flex:1 }} onClick={()=>setConsultMode(m)}>{m}</button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ background:"rgba(200,241,53,0.05)",border:"1px solid rgba(200,241,53,0.15)",borderRadius:10,padding:"12px 14px" }}>
-                <div style={{ fontSize:11,color:"#C8F135",fontWeight:700,marginBottom:2 }}>🔒 Max Patient Capacity: 10</div>
-                <div style={{ fontSize:11,color:T.creamFaint }}>Fixed at 10 patients per doctor to ensure quality of care.</div>
-              </div>
-              <div>
-                <label style={lbl}>Availability Slots</label>
-                <div style={{ display:"flex",gap:7,flexWrap:"wrap" }}>
-                  {SLOTS.map(slot=>(
-                    <button key={slot} style={chip(availableSlots.includes(slot))} onClick={()=>toggleSlot(slot)}>{slot}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label style={lbl}>Short Bio</label>
-                <textarea placeholder="Brief description of your expertise and approach…" value={bio} onChange={e=>setBio(e.target.value)} rows={3}
-                  style={{ ...inp,resize:"vertical",minHeight:72 }} />
-              </div>
-            </>)}
-
-            {/* LOGIN */}
-            {tab==="login" && (<>
-              <div><label style={lbl}>Email</label><input type="email" placeholder="you@email.com" value={email} onChange={e=>setEmail(e.target.value)} style={inp} autoComplete="email" /></div>
-              <div><label style={lbl}>Password</label><input type="password" placeholder="Your password" value={password} onChange={e=>setPassword(e.target.value)} style={inp} autoComplete="current-password" /></div>
-            </>)}
-
-            {error && (
-              <div style={{ color:"#ff6b6b",fontSize:13,textAlign:"center",padding:"10px 14px",background:"rgba(232,64,64,0.10)",borderRadius:10,border:"1px solid rgba(232,64,64,0.25)" }}>⚠️ {error}</div>
             )}
 
-            {isDR ? (
-              <div style={{ display:"flex",gap:10 }}>
-                {doctorStep>1 && (
-                  <button onClick={()=>setDoctorStep(1)} style={{ padding:"11px 22px",borderRadius:50,border:`1px solid ${T.cardBorder}`,background:"transparent",color:T.creamDim,fontSize:14,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>← Back</button>
-                )}
-                {doctorStep===1 ? (
-                  <Btn style={{ flex:1,justifyContent:"center" }} onClick={()=>{
-                    if(!fullName.trim()) return setError("Full name required.");
-                    if(!email.trim()) return setError("Email required.");
-                    if(!password||password.length<6) return setError("Password must be 6+ characters.");
-                    if(!specialization) return setError("Please select a specialization.");
-                    if(!license.trim()) return setError("License number required.");
-                    if(!hospital.trim()) return setError("Hospital name required.");
-                    setError(""); setDoctorStep(2);
-                  }}>Continue → Availability & Bio</Btn>
-                ) : (
-                  <Btn style={{ flex:1,justifyContent:"center",opacity:loading?0.7:1 }} onClick={handleSubmit}>
-                    {loading?"Creating Account…":"Create Doctor Account →"}
-                  </Btn>
-                )}
+            {(!isDoctorRegister || step === 1) && (
+              <>
+                <div>
+                  <label style={labelStyle}>Email Address *</label>
+                  <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="glass-input" style={inputStyle} autoComplete="email" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Password *</label>
+                  <input type="password" placeholder={tab === "login" ? "Enter password" : "Min. 6 characters"} value={password} onChange={e => setPassword(e.target.value)} className="glass-input" style={inputStyle} autoComplete={tab === "login" ? "current-password" : "new-password"} />
+                </div>
+              </>
+            )}
+
+            {/* ── Patient register extras ── */}
+            {tab === "register" && mode === "user" && (
+              <div>
+                <label style={labelStyle}>Age (optional)</label>
+                <input type="number" placeholder="e.g. 45" value={age} onChange={e => setAge(e.target.value)} className="glass-input" style={inputStyle} />
               </div>
-            ) : (
-              <Btn onClick={handleSubmit} style={{ width:"100%",justifyContent:"center",marginTop:4,opacity:loading?0.7:1 }}>
-                {loading?"Please wait…":tab==="login"?`Sign In as ${mode==="doctor"?"Doctor":"Patient"} →`:"Create Account →"}
+            )}
+
+            {/* ── Doctor Register: Step 1 ── */}
+            {isDoctorRegister && step === 1 && (
+              <>
+                <div>
+                  <label style={labelStyle}>Medical License Number *</label>
+                  <input placeholder="e.g. MCI-123456" value={license} onChange={e => setLicense(e.target.value)} className="glass-input" style={inputStyle} autoComplete="off" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Specialization *</label>
+                  <select value={specialization} onChange={e => setSpecialization(e.target.value)} style={selectStyle}>
+                    <option value="" style={{ background: "#1a1a1a" }}>Select specialization…</option>
+                    {SPECIALIZATIONS.map(s => <option key={s} value={s} style={{ background: "#1a1a1a" }}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Years of Experience</label>
+                  <input type="number" min="0" max="60" placeholder="e.g. 12" value={yearsExp} onChange={e => setYearsExp(e.target.value)} className="glass-input" style={inputStyle} />
+                </div>
+              </>
+            )}
+
+            {/* ── Doctor Register: Step 2 ── */}
+            {isDoctorRegister && step === 2 && (
+              <>
+                <div>
+                  <label style={labelStyle}>Hospital / Clinic Name *</label>
+                  <input placeholder="e.g. Apollo Hospitals, Delhi" value={hospital} onChange={e => setHospital(e.target.value)} className="glass-input" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Location (City)</label>
+                  <input placeholder="e.g. Mumbai, India" value={location} onChange={e => setLocation(e.target.value)} className="glass-input" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Consultation Mode</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {CONSULT_MODES.map(m => (
+                      <button key={m} onClick={() => setConsultMode(m)} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: `1px solid ${consultMode === m ? T.red : "rgba(255,255,255,0.12)"}`, background: consultMode === m ? "rgba(232,64,64,0.15)" : "transparent", color: consultMode === m ? T.red : T.creamFaint, fontSize: 13, fontWeight: consultMode === m ? 700 : 400, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", transition: "all 0.2s" }}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Short Bio (optional)</label>
+                  <textarea placeholder="Brief description of your practice and expertise…" value={bio} onChange={e => setBio(e.target.value)} rows={3} style={{ ...inputStyle, background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.10)", resize: "none", lineHeight: 1.5 }} />
+                </div>
+                <div style={{ background: "rgba(200,241,53,0.06)", border: `1px solid ${LIME}22`, borderRadius: 10, padding: "10px 14px", fontSize: 12, color: LIME }}>
+                  ✓ Max patients is fixed at 10 per doctor. Patients can request enrollment from their dashboard.
+                </div>
+              </>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div style={{ color: "#ff6b6b", fontSize: 13, textAlign: "center", padding: "10px 14px", background: "rgba(232,64,64,0.10)", borderRadius: 10, border: "1px solid rgba(232,64,64,0.25)", lineHeight: 1.5 }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* ── Doctor Step 2: Back button ── */}
+            {isDoctorRegister && step === 2 && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => { setStep(1); setError(""); }} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: `1px solid ${T.cardBorder}`, background: "transparent", color: T.creamFaint, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>← Back</button>
+                <Btn onClick={handleSubmit} disabled={loading} style={{ flex: 2, justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
+                  {loading ? "Creating account…" : "Register as Doctor →"}
+                </Btn>
+              </div>
+            )}
+
+            {!(isDoctorRegister && step === 2) && (
+              <Btn onClick={handleSubmit} disabled={loading} style={{ width: "100%", justifyContent: "center", marginTop: 2, opacity: loading ? 0.7 : 1 }}>
+                {loading ? "Please wait…"
+                  : isDoctorRegister && step === 1 ? "Next: Clinic Info →"
+                  : tab === "login" ? `Sign In as ${mode === "doctor" ? "Doctor" : "Patient"} →`
+                  : "Create Account →"}
               </Btn>
             )}
           </div>
 
-          <div style={{ textAlign:"center",marginTop:20 }}>
-            <button onClick={()=>setView("landing")} style={{ background:"none",border:"none",color:T.creamFaint,fontSize:13,cursor:"pointer",fontFamily:"'DM Sans',sans-serif" }}>← Back to Home</button>
+          <div style={{ textAlign: "center", marginTop: 18 }}>
+            <button onClick={() => setView("landing")} style={{ background: "none", border: "none", color: T.creamFaint, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>← Back to Home</button>
           </div>
         </DarkCard>
       </div>
