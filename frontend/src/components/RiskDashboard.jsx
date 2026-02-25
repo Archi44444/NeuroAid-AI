@@ -208,7 +208,7 @@ export function Sidebar({ role, page, setPage, setView, onLogout, isMobile = fal
   const uNav = [
     { id:"dashboard",   label:"Overview",      icon:"◈" },
     { id:"assessments", label:"Assessments",   icon:"◉" },
-    { id:"speech",      label:"Speech Test",   icon:"◎" },
+    { id:"speech",      label:"Speech Test",   icon:"⬤" },
     { id:"memory",      label:"Memory Test",   icon:"⬡" },
     { id:"reaction",    label:"Reaction Test", icon:"◷" },
     { id:"stroop",      label:"Stroop Test",   icon:"◐" },
