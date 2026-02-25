@@ -7,6 +7,7 @@ import { getUser, isLoggedIn, logout } from "./services/api";
 import LandingPage     from "./pages/LandingPage";
 import AboutPage       from "./pages/AboutPage";
 import LoginPage       from "./pages/Login";
+import ProfileSetup    from "./pages/ProfileSetup";
 import UserDashboard   from "./pages/UserDashboard";
 import AssessmentHub   from "./pages/AssessmentHub";
 import ResultsPage     from "./pages/ResultsPage";
@@ -26,12 +27,11 @@ import TapTest      from "./components/TapTest";
 injectStyles();
 
 function getInitialState() {
-  // On tab load, restore role and view from sessionStorage (per-tab, supports multiple users)
   const user = getUser();
   if (user && isLoggedIn()) {
-    const role     = user.role === "doctor" ? "doctor" : "user";
-    const view     = role === "doctor" ? "doctor-dashboard" : "dashboard";
-    const page     = role === "doctor" ? "doctor-dashboard" : "dashboard";
+    const role = user.role === "doctor" ? "doctor" : "user";
+    const view = role === "doctor" ? "doctor-dashboard" : "dashboard";
+    const page = role === "doctor" ? "doctor-dashboard" : "dashboard";
     return { view, role, page, user };
   }
   return { view: "landing", role: "user", page: "dashboard", user: null };
@@ -40,11 +40,15 @@ function getInitialState() {
 export default function App() {
   const init = getInitialState();
 
-  const [view,        setViewState]   = useState(init.view);
-  const [role,        setRole]        = useState(init.role);
-  const [page,        setPage]        = useState(init.page);
-  const [patient,     setPatient]     = useState(null);
-  const [currentUser, setCurrentUser] = useState(init.user);
+  const [view,           setViewState]      = useState(init.view);
+  const [role,           setRole]           = useState(init.role);
+  const [page,           setPage]           = useState(init.page);
+  const [patient,        setPatient]        = useState(null);
+  const [currentUser,    setCurrentUser]    = useState(init.user);
+  // Profile setup — shown once after first registration for patients
+  const [showProfile,    setShowProfile]    = useState(false);
+  const [pendingUser,    setPendingUser]     = useState(null);
+  const [pendingRole,    setPendingRole]     = useState(null);
 
   async function handleLogout() {
     await logout();
@@ -52,6 +56,7 @@ export default function App() {
     setRole("user");
     setPage("dashboard");
     setViewState("landing");
+    setShowProfile(false);
   }
 
   function setView(v) {
@@ -61,21 +66,53 @@ export default function App() {
     setViewState(v);
   }
 
-  // Show landing / about / login if not in app shell
+  // Called by LoginPage after successful login or registration
+  function handleAuthSuccess(user, resolvedRole, isNewUser = false) {
+    setCurrentUser(user);
+    const r = resolvedRole === "doctor" ? "doctor" : "user";
+    setRole(r);
+    // Show profile setup only for new patient registrations
+    if (isNewUser && r === "user") {
+      setPendingUser(user);
+      setPendingRole(r);
+      setShowProfile(true);
+    } else {
+      setViewState(r === "doctor" ? "doctor-dashboard" : "dashboard");
+      setPage(r === "doctor" ? "doctor-dashboard" : "dashboard");
+    }
+  }
+
+  function handleProfileComplete() {
+    setShowProfile(false);
+    const r = pendingRole || "user";
+    setRole(r);
+    setViewState("dashboard");
+    setPage("dashboard");
+  }
+
+  // ── Profile Setup screen (after new patient registration) ────────────────
+  if (showProfile) {
+    return (
+      <ProfileSetup
+        user={pendingUser || currentUser}
+        onComplete={handleProfileComplete}
+      />
+    );
+  }
+
+  // ── Pre-auth screens ──────────────────────────────────────────────────────
   if (view === "landing") return <LandingPage setView={setView} currentUser={currentUser} />;
   if (view === "about")   return <AboutPage   setView={setView} />;
   if (view === "login")   return (
     <LoginPage
       setView={setView}
-      setRole={r => {
-        // Map "user"→"user", "doctor"→"doctor"
-        setRole(r === "doctor" ? "doctor" : "user");
-      }}
+      setRole={r => setRole(r === "doctor" ? "doctor" : "user")}
       setCurrentUser={setCurrentUser}
+      onAuthSuccess={handleAuthSuccess}
     />
   );
 
-  // ── Patient pages ──────────────────────────────────────────────────────────
+  // ── Patient pages ─────────────────────────────────────────────────────────
   const userPages = {
     "dashboard":   <UserDashboard  setPage={setPage} />,
     "assessments": <AssessmentHub  setPage={setPage} />,
@@ -85,11 +122,11 @@ export default function App() {
     "stroop":      <StroopTest     setPage={setPage} />,
     "tap":         <TapTest        setPage={setPage} />,
     "results":     <ResultsPage    setPage={setPage} />,
-    "progress":    <ProgressPage />,
+    "progress":    <ProgressPage   setPage={setPage} />,
     "messages":    <MessagesPage />,
   };
 
-  // ── Doctor pages ───────────────────────────────────────────────────────────
+  // ── Doctor pages ──────────────────────────────────────────────────────────
   const doctorPages = {
     "doctor-dashboard": <DoctorHome      setPage={setPage} setSelectedPatient={setPatient} />,
     "patients":         <DoctorDashboard setPage={setPage} setSelectedPatient={setPatient} />,
@@ -105,7 +142,8 @@ export default function App() {
 
   return (
     <AssessmentProvider>
-      <Shell role={role} page={page} setPage={setPage} setView={setView} currentUser={currentUser} onLogout={handleLogout}>
+      <Shell role={role} page={page} setPage={setPage} setView={setView}
+        currentUser={currentUser} onLogout={handleLogout}>
         {content}
       </Shell>
     </AssessmentProvider>
