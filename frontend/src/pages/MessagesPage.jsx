@@ -149,10 +149,10 @@ export default function MessagesPage() {
           ) : convs.length === 0 && !showPicker ? (
             <div style={{ padding: 28, color: "#555", fontSize: 13, textAlign: "center", lineHeight: 1.8 }}>
               <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>💬</div>
-              No conversations yet.<br />
-              <button onClick={openPicker} style={{ marginTop: 14, padding: "8px 18px", borderRadius: 20, background: `${LIME}18`, border: `1px solid ${LIME}44`, color: LIME, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
-                Start a conversation →
-              </button>
+              {isDoctor
+                ? <>No enrolled patients yet.<br /><span style={{ fontSize: 11 }}>Approve enrollment requests to start chatting.</span></>
+                : <>No doctor assigned yet.<br /><span style={{ fontSize: 11 }}>Enroll with a doctor from your dashboard first.</span></>
+              }
             </div>
           ) : convs.map(conv => {
             const isActive = active?.user_id === conv.user_id && !showPicker;
@@ -194,7 +194,9 @@ export default function MessagesPage() {
             {pickList.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center", color: "#555", fontSize: 14 }}>
                 <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>👥</div>
-                {isDoctor ? "No patients registered yet." : "No doctors registered yet. Ask your doctor to create an account."}
+                {isDoctor
+                  ? "No enrolled patients yet. Patients will appear here once you approve their enrollment requests."
+                  : "No doctor assigned yet. Go to your dashboard → My Doctor section to request enrollment."}
               </div>
             ) : pickList.map(p => (
               <div key={p.user_id} onClick={() => openConv(p)}

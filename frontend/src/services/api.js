@@ -38,8 +38,8 @@ async function request(method, path, body, requiresAuth = false) {
 // ── Auth API ──────────────────────────────────────────────────────────────────
 
 /** Register a new user. role = "patient" | "doctor" */
-export async function register({ full_name, email, password, role, age, gender, license_number }) {
-  const data = await request("POST", "/auth/register", { full_name, email, password, role, age, gender, license_number });
+export async function register({ full_name, email, password, role, age, gender, phone, license_number, specialization, hospital, location, years_experience, consultation_mode, bio, max_patients }) {
+  const data = await request("POST", "/auth/register", { full_name, email, password, role, age, gender, phone, license_number, specialization, hospital, location, years_experience, consultation_mode, bio, max_patients });
   saveSession(data.token, data.user);
   return data;
 }
@@ -105,6 +105,24 @@ export async function getUnreadCount() {
 }
 
 export async function getDoctors() {
-  const data = await request("GET", "/doctors", null, true);
+  const data = await request("GET", "/auth/doctors", null, true);
   return data.doctors;
+}
+
+export async function getMyDoctor() {
+  const data = await request("GET", "/auth/doctors/my-doctor", null, true);
+  return data;
+}
+
+export async function enrollWithDoctor(doctorId) {
+  return request("POST", "/auth/doctors/enroll", { doctor_id: doctorId }, true);
+}
+
+export async function getPendingRequests() {
+  const data = await request("GET", "/auth/doctors/pending-requests", null, true);
+  return data.pending_requests;
+}
+
+export async function approvePatient(patientId, action) {
+  return request("POST", "/auth/doctors/approve", { patient_id: patientId, action }, true);
 }

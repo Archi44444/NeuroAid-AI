@@ -35,6 +35,8 @@ export const injectStyles = () => {
     @keyframes scan-line  { 0%{top:-2px} 100%{top:100%} }
     @keyframes slide-up   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
     @keyframes ghost-drift { 0%,100%{opacity:0.028} 50%{opacity:0.052} }
+    select { color-scheme: dark; }
+    select option { background: #1a1a1a !important; color: #f0ece3 !important; }
   `;
   document.head.appendChild(s);
 };

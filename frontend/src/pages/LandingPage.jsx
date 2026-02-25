@@ -288,8 +288,8 @@ export default function LandingPage({ setView }) {
   const [mouse,setMouse]           = useState({x:0.5,y:0.5});
   const [showMore,setShowMore]     = useState(false);
   const [mounted,setMounted]       = useState(false);
-  const [navOpen,setNavOpen]       = useState(null);
   const [showDemo,setShowDemo]     = useState(false);
+  const [navOpen,setNavOpen]       = useState(null);
   const moreRef = useRef(null);
 
   // Smoothed mouse for parallax
@@ -368,6 +368,58 @@ export default function LandingPage({ setView }) {
       {/* Navbar via Portal — always fixed to viewport, nothing can break it */}
       <NavPortal setView={setView} open={navOpen} setOpen={setNavOpen} />
 
+      {/* Demo Video Modal */}
+      {showDemo && (
+        <div
+          onClick={() => setShowDemo(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 99999,
+            background: "rgba(0,0,0,0.88)", backdropFilter: "blur(12px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 860,
+              borderRadius: 20, overflow: "hidden",
+              border: "1px solid rgba(200,241,53,0.2)",
+              boxShadow: "0 40px 120px rgba(0,0,0,0.9)",
+              background: "#080808",
+            }}
+          >
+            {/* Modal header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 22px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.lime, animation: "pulse-dot 2s infinite" }} />
+                <span style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 700, color: C.lime, fontSize: 13, letterSpacing: 1, textTransform: "uppercase" }}>NeuroAid Demo</span>
+              </div>
+              <button
+                onClick={() => setShowDemo(false)}
+                style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#fff", width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}
+              >✕</button>
+            </div>
+            {/* Video — centered */}
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", background: "#000", aspectRatio: "16/9" }}>
+              <iframe
+                width="100%"
+                height="100%"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+                title="NeuroAid Demo"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ display: "block", width: "100%", aspectRatio: "16/9" }}
+              />
+            </div>
+            <div style={{ padding: "14px 22px", textAlign: "center" }}>
+              <p style={{ color: "#555", fontSize: 12 }}>Replace the YouTube URL in the source code with your actual demo video ID.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── HERO ── */}
       <section style={{
         minHeight:"100vh",display:"flex",flexDirection:"column",
@@ -434,7 +486,7 @@ export default function LandingPage({ setView }) {
               onMouseEnter={e=>{e.currentTarget.style.background="#d4ff40";e.currentTarget.style.transform="translateY(-2px)";}}
               onMouseLeave={e=>{e.currentTarget.style.background=C.lime;e.currentTarget.style.transform="none";}}
             >Start Free Assessment →</button>
-            <button onClick={()=>setShowDemo(true)} style={{
+            <button style={{
               background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",
               color:C.offWhite,fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:15,
               padding:"13px 28px",borderRadius:50,cursor:"pointer",
@@ -442,45 +494,8 @@ export default function LandingPage({ setView }) {
             }}
               onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.10)";e.currentTarget.style.transform="translateY(-2px)";}}
               onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.transform="none";}}
-            >▶ Watch Demo</button>
-
-            {/* Demo Video Modal */}
-            {showDemo && createPortal(
-              <div onClick={()=>setShowDemo(false)} style={{ position:"fixed",inset:0,zIndex:99999,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(14px)",display:"flex",alignItems:"center",justifyContent:"center",padding:24 }}>
-                <div onClick={e=>e.stopPropagation()} style={{ width:"100%",maxWidth:840,background:"rgba(8,10,8,0.98)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,overflow:"hidden",boxShadow:"0 40px 120px rgba(0,0,0,0.90)",animation:"dd-in 0.28s cubic-bezier(0.34,1.56,0.64,1) both" }}>
-                  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 26px",borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
-                    <div>
-                      <div style={{ display:"inline-flex",alignItems:"center",gap:8,background:`rgba(200,241,53,0.10)`,border:`1px solid ${C.lime}33`,borderRadius:99,padding:"4px 12px",marginBottom:6,fontSize:10,fontWeight:700,color:C.lime,letterSpacing:1.5,textTransform:"uppercase" }}>
-                        <span style={{ width:5,height:5,borderRadius:"50%",background:C.lime,display:"inline-block",animation:"pulse-dot 2s infinite" }} />
-                        Live Demo
-                      </div>
-                      <div style={{ fontWeight:900,fontSize:18,color:C.white,letterSpacing:-0.5 }}>NeuroAid in Action</div>
-                      <div style={{ fontSize:12,color:"#555",marginTop:2 }}>See the complete cognitive screening workflow</div>
-                    </div>
-                    <button onClick={()=>setShowDemo(false)} style={{ background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#888",width:34,height:34,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>✕</button>
-                  </div>
-                  <div style={{ padding:24, display:"flex", flexDirection:"column", alignItems:"center" }}>
-                    <div style={{ position:"relative",paddingBottom:"56.25%",height:0,borderRadius:16,overflow:"hidden",background:"#000",width:"100%" }}>
-                      <iframe
-                        style={{ position:"absolute",top:0,left:0,width:"100%",height:"100%" }}
-                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
-                        title="NeuroAid Platform Demo"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                    <div style={{ display:"flex",gap:10,marginTop:18,justifyContent:"center",alignItems:"center",width:"100%" }}>
-                      <div style={{ fontSize:12,color:"#555" }}>Replace the YouTube URL with your actual demo video</div>
-                      <button onClick={()=>{setShowDemo(false);setView("login");}} style={{ background:C.lime,border:"none",color:"#080808",fontWeight:700,fontSize:14,padding:"10px 24px",borderRadius:50,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap" }}>
-                        Try It Free →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>,
-              document.body
-            )}
+              onClick={()=>setShowDemo(true)}
+            >Watch Demo ▶</button>
           </div>
         </div>
 
@@ -572,7 +587,7 @@ export default function LandingPage({ setView }) {
                 </p>
                 <div style={{ display:"flex",gap:12,flexWrap:"wrap" }}>
                   <FloatBtn lime onClick={()=>setView("login")}>Start Free Assessment →</FloatBtn>
-                  <FloatBtn>Watch Demo ▶</FloatBtn>
+                  <FloatBtn onClick={()=>setShowDemo(true)}>Watch Demo ▶</FloatBtn>
                 </div>
               </div>
               {/* Floating stat cards */}
