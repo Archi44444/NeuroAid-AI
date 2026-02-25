@@ -54,10 +54,8 @@ export default function UserDashboard({ setPage }) {
     : null;
 
   const riskLevel = hasData
-    ? (last.risk_levels?.alzheimers === "High" || last.risk_levels?.dementia === "High" || last.risk_levels?.parkinsons === "High"
-        ? "High"
-        : last.risk_levels?.alzheimers === "Moderate" || last.risk_levels?.dementia === "Moderate" || last.risk_levels?.parkinsons === "Moderate"
-          ? "Moderate" : "Low")
+    ? (domains.some(d => d.v < 50) ? "High"
+       : domains.some(d => d.v < 70) ? "Moderate" : "Low")
     : null;
 
   return (
@@ -88,7 +86,7 @@ export default function UserDashboard({ setPage }) {
             No assessments yet
           </div>
           <p style={{ color: "#555", fontSize: 14, maxWidth: 400, margin: "0 auto 28px", lineHeight: 1.7 }}>
-            Complete all 5 cognitive tests to get your personalized Alzheimer's, Dementia, and Parkinson's risk scores.
+            Complete all 5 cognitive tests to see your full cognitive performance profile.
           </p>
           <Btn onClick={() => setPage("assessments")}>Start First Assessment →</Btn>
         </DarkCard>
@@ -139,29 +137,30 @@ export default function UserDashboard({ setPage }) {
             </DarkCard>
           </div>
 
-          {/* Disease Risk row */}
+          {/* Cognitive Domain Overview (mirrors Results page — no disease labels) */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 16 }}>
             {[
-              { key: "alzheimers", label: "Alzheimer's", icon: "🧩", color: "#a78bfa" },
-              { key: "dementia",   label: "Dementia",    icon: "🌀", color: "#f59e0b" },
-              { key: "parkinsons", label: "Parkinson's", icon: "🎯", color: "#60a5fa" },
+              { key: "executive_score", label: "Executive",  icon: "🎯", color: "#a78bfa", desc: "Inhibitory control & cognitive flexibility" },
+              { key: "motor_score",     label: "Motor",      icon: "🥁", color: "#fbbf24", desc: "Rhythmic motor consistency" },
+              { key: "memory_score",    label: "Memory",     icon: "🧠", color: "#34d399", desc: "Recall accuracy & retention" },
             ].map(d => {
-              const prob  = Math.round((last[`${d.key}_risk`] || 0) * 100);
-              const level = last.risk_levels?.[d.key] || "Low";
-              const lvlColor = level === "High" ? T.red : level === "Moderate" ? T.amber : T.green;
+              const score = Math.max(0, Math.min(100, Math.round(last[d.key] || 0)));
+              const tier = score >= 72 ? "Healthy Range" : score >= 52 ? "Some Variation" : "Worth Monitoring";
+              const tierColor = score >= 72 ? "#34d399" : score >= 52 ? "#fbbf24" : "#f87171";
               return (
                 <DarkCard key={d.key} style={{ padding: 22, border: `1px solid ${d.color}20` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 20 }}>{d.icon}</span>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${d.color}14`, border: `1px solid ${d.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{d.icon}</div>
                       <span style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>{d.label}</span>
                     </div>
-                    <span style={{ background: `${lvlColor}18`, color: lvlColor, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, border: `1px solid ${lvlColor}33` }}>{level}</span>
+                    <span style={{ background: `${tierColor}18`, color: tierColor, padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, border: `1px solid ${tierColor}33` }}>{tier}</span>
                   </div>
-                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 900, fontSize: 40, color: d.color, lineHeight: 1 }}>{prob}<span style={{ fontSize: 16, color: "#555" }}>%</span></div>
+                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 900, fontSize: 40, color: d.color, lineHeight: 1 }}>{score}<span style={{ fontSize: 16, color: "#555" }}>/100</span></div>
                   <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.07)", marginTop: 12 }}>
-                    <div style={{ height: "100%", width: `${prob}%`, background: d.color, borderRadius: 2 }} />
+                    <div style={{ height: "100%", width: `${score}%`, background: `linear-gradient(90deg, ${d.color}88, ${d.color})`, borderRadius: 2, transition: "width 0.8s ease" }} />
                   </div>
+                  <div style={{ fontSize: 11, color: "#555", marginTop: 8 }}>{d.desc}</div>
                 </DarkCard>
               );
             })}

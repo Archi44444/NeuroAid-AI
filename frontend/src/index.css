@@ -192,3 +192,13 @@ html, #root {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(232,64,64,0.40), transparent);
 }
+/* Fix dropdown selects and options — dark bg, light text */
+select {
+  color-scheme: dark;
+  background: #1a1a1a;
+  color: #f0ece3;
+}
+select option {
+  background: #1a1a1a;
+  color: #f0ece3;
+}

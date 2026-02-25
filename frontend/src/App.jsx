@@ -4,10 +4,11 @@ import { Shell } from "./components/RiskDashboard";
 import { AssessmentProvider } from "./context/AssessmentContext";
 import { getUser, isLoggedIn, logout } from "./services/api";
 
-import LandingPage     from "./pages/LandingPage";
-import AboutPage       from "./pages/AboutPage";
-import LoginPage       from "./pages/Login";
-import ProfileSetup    from "./pages/ProfileSetup";
+import LandingPage      from "./pages/LandingPage";
+import AboutPage        from "./pages/AboutPage";
+import LoginPage        from "./pages/Login";
+import ProfileSetup     from "./pages/ProfileSetup";
+import DoctorSelection  from "./pages/DoctorSelection";
 import UserDashboard   from "./pages/UserDashboard";
 import AssessmentHub   from "./pages/AssessmentHub";
 import ResultsPage     from "./pages/ResultsPage";
@@ -47,6 +48,7 @@ export default function App() {
   const [currentUser,    setCurrentUser]    = useState(init.user);
   // Profile setup — shown once after first registration for patients
   const [showProfile,    setShowProfile]    = useState(false);
+  const [showDoctorSel,  setShowDoctorSel]  = useState(false);
   const [pendingUser,    setPendingUser]     = useState(null);
   const [pendingRole,    setPendingRole]     = useState(null);
 
@@ -84,6 +86,12 @@ export default function App() {
 
   function handleProfileComplete() {
     setShowProfile(false);
+    // Show doctor selection for new patients
+    setShowDoctorSel(true);
+  }
+
+  function handleDoctorSelectionComplete() {
+    setShowDoctorSel(false);
     const r = pendingRole || "user";
     setRole(r);
     setViewState("dashboard");
@@ -96,6 +104,16 @@ export default function App() {
       <ProfileSetup
         user={pendingUser || currentUser}
         onComplete={handleProfileComplete}
+      />
+    );
+  }
+
+  // ── Doctor Selection screen (after profile setup) ─────────────────────────
+  if (showDoctorSel) {
+    return (
+      <DoctorSelection
+        onComplete={handleDoctorSelectionComplete}
+        onSkip={handleDoctorSelectionComplete}
       />
     );
   }

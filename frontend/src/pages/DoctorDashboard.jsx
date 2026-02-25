@@ -96,7 +96,7 @@ export default function DoctorDashboard({ setPage, setSelectedPatient }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${T.cardBorder}` }}>
-                {["Patient", "Age", "Overall Risk", "Alzheimer's", "Dementia", "Parkinson's", "Sessions", "Last Active", ""].map(h => (
+                {["Patient", "Age", "Neural Status", "Memory Deviation", "Executive Drift", "Motor Anomaly", "Sessions", "Last Active", ""].map(h => (
                   <th key={h} style={{ padding: "14px 16px", textAlign: "left", fontSize: 10, fontWeight: 600, color: T.creamFaint, letterSpacing: 1, textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
