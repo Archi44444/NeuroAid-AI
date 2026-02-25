@@ -1,18 +1,27 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { T } from "../utils/theme";
 
 const LIME = "#C8F135";
 
+function seededUnit(seed) {
+  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453123;
+  return value - Math.floor(value);
+}
+
 // ── Stars (tiny twinkling dots) ───────────────────────────────────────────────
 export function Stars({ count = 40 }) {
-  const stars = useRef(Array.from({ length: count }, (_, i) => ({
-    x: Math.random() * 100, y: Math.random() * 100,
-    size: Math.random() * 1.6 + 0.4,
-    delay: Math.random() * 5, dur: Math.random() * 3 + 2,
-    color: i % 10 === 0 ? "rgba(200,241,53,0.80)"
-         : i % 8  === 0 ? "rgba(96,165,250,0.65)"
-         : "rgba(255,255,255,0.70)",
-  }))).current;
+  const stars = useMemo(() => (
+    Array.from({ length: count }, (_, i) => ({
+      x: seededUnit(i + count * 1.7) * 100,
+      y: seededUnit(i + count * 2.9) * 100,
+      size: seededUnit(i + count * 4.1) * 1.6 + 0.4,
+      delay: seededUnit(i + count * 6.3) * 5,
+      dur: seededUnit(i + count * 8.5) * 3 + 2,
+      color: i % 10 === 0 ? "rgba(200,241,53,0.80)"
+           : i % 8  === 0 ? "rgba(96,165,250,0.65)"
+           : "rgba(255,255,255,0.70)",
+    }))
+  ), [count]);
   return (
     <div style={{ position:"absolute", inset:0, overflow:"hidden", pointerEvents:"none" }}>
       {stars.map((s, i) => (
@@ -23,7 +32,7 @@ export function Stars({ count = 40 }) {
 }
 
 // ── DarkCard — dark glass card with lime bottom-right glow ────────────────────
-export function DarkCard({ children, style = {}, hover = true, onClick, limeGlow = false }) {
+export function DarkCard({ children, style = {}, hover = true, onClick }) {
   const [hov, setHov] = useState(false);
   const active = hover && hov;
   return (
@@ -183,8 +192,8 @@ export function MiniChart({ data, color = LIME, height = 60 }) {
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
-export function Sidebar({ role, page, setPage, setView, onLogout }) {
-  const storedUser = (() => { try { const u = sessionStorage.getItem("neuroaid_user"); return u ? JSON.parse(u) : null; } catch(e) { return null; } })();
+export function Sidebar({ role, page, setPage, setView, onLogout, isMobile = false, mobileOpen = false, onClose }) {
+  const storedUser = (() => { try { const u = sessionStorage.getItem("neuroaid_user"); return u ? JSON.parse(u) : null; } catch { return null; } })();
   const displayName = storedUser?.full_name || (role === "doctor" ? "Doctor" : "Patient");
   const initials = displayName.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
   const [unread, setUnread] = useState(0);
@@ -216,6 +225,22 @@ export function Sidebar({ role, page, setPage, setView, onLogout }) {
   ];
   const nav = role === "doctor" ? dNav : uNav;
 
+  function handleNavClick(nextPage) {
+    setPage(nextPage);
+    if (isMobile && onClose) onClose();
+  }
+
+  function handleLogoClick() {
+    setPage(role === "doctor" ? "doctor-dashboard" : "dashboard");
+    if (isMobile && onClose) onClose();
+  }
+
+  function handleSignOut() {
+    if (onLogout) onLogout();
+    else setView("landing");
+    if (isMobile && onClose) onClose();
+  }
+
   return (
     <div style={{
       width:220, minHeight:"100vh",
@@ -223,7 +248,9 @@ export function Sidebar({ role, page, setPage, setView, onLogout }) {
       backdropFilter:"blur(40px)", WebkitBackdropFilter:"blur(40px)",
       borderRight:`1px solid rgba(255,255,255,0.07)`,
       display:"flex", flexDirection:"column",
-      position:"fixed", left:0, top:0, bottom:0, zIndex:100,
+      position:"fixed", left:0, top:0, bottom:0, zIndex:130,
+      transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-104%)") : "translateX(0)",
+      transition:"transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
       boxShadow:`6px 0 40px rgba(0,0,0,0.60)`,
       backgroundImage:`linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)`,
       backgroundSize:"60px 60px",
@@ -234,7 +261,7 @@ export function Sidebar({ role, page, setPage, setView, onLogout }) {
 
       {/* Logo — clicking refreshes dashboard, does NOT log out */}
       <div style={{ padding:"28px 22px 20px", borderBottom:"1px solid rgba(255,255,255,0.06)", cursor:"pointer", position:"relative", zIndex:2 }}
-        onClick={() => setPage(role === "doctor" ? "doctor-dashboard" : "dashboard")}
+        onClick={handleLogoClick}
         title="Go to dashboard">
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <div style={{ width:32, height:32, borderRadius:9, background:`linear-gradient(135deg,${LIME},#9ABF28)`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:14, color:"#080808", boxShadow:`0 0 16px ${LIME}44` }}>N</div>
@@ -248,7 +275,7 @@ export function Sidebar({ role, page, setPage, setView, onLogout }) {
           const a = page === item.id;
           const hasBadge = item.badge && item.badge > 0;
           return (
-            <button key={item.id} onClick={() => setPage(item.id)} style={{
+            <button key={item.id} onClick={() => handleNavClick(item.id)} style={{
               display:"flex", alignItems:"center", gap:10, padding:"10px 14px",
               borderRadius:12, border:a ? `1px solid ${LIME}33` : "1px solid transparent",
               background:a ? `rgba(200,241,53,0.10)` : "transparent",
@@ -258,7 +285,17 @@ export function Sidebar({ role, page, setPage, setView, onLogout }) {
               fontFamily:"'DM Sans',sans-serif",
               boxShadow:a ? `0 0 20px ${LIME}12` : "none",
             }}>
-              <span style={{ fontSize:14, width:18 }}>{item.icon}</span>{item.label}
+              <span style={{ fontSize:14, width:18 }}>{item.icon}</span>
+              <span style={{ flex:1 }}>{item.label}</span>
+              {hasBadge ? (
+                <span style={{
+                  minWidth:18, height:18, borderRadius:999, padding:"0 6px",
+                  background:`${LIME}22`, border:`1px solid ${LIME}66`, color:LIME,
+                  fontSize:10, fontWeight:800, display:"inline-flex", alignItems:"center", justifyContent:"center",
+                }}>
+                  {item.badge}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -272,7 +309,7 @@ export function Sidebar({ role, page, setPage, setView, onLogout }) {
             <div style={{ fontSize:10, color:"#555", textTransform:"uppercase", letterSpacing:1 }}>{role === "doctor" ? "Doctor" : "Patient"}</div>
           </div>
         </div>
-        <button onClick={() => onLogout ? onLogout() : setView("landing")} style={{ background:"transparent", border:"none", color:"#444", fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"color 0.2s" }}
+        <button onClick={handleSignOut} style={{ background:"transparent", border:"none", color:"#444", fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"color 0.2s" }}
           onMouseEnter={e => e.target.style.color = LIME}
           onMouseLeave={e => e.target.style.color = "#444"}
         >← Sign out</button>
@@ -297,6 +334,38 @@ function GhostText({ text, style = {} }) {
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 export function Shell({ role, page, setPage, setView, children, onLogout }) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 980 : false
+  );
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth <= 980;
+      setIsMobile(mobile);
+      if (!mobile) setMobileOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = mobileOpen ? "hidden" : prevOverflow || "";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isMobile, mobileOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   // Map page to ghost label
   const ghostLabels = {
     dashboard:        "OVERVIEW",
@@ -315,10 +384,61 @@ export function Shell({ role, page, setPage, setView, children, onLogout }) {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#080808" }}>
-      <Sidebar role={role} page={page} setPage={setPage} setView={setView} onLogout={onLogout} />
+      <Sidebar
+        role={role}
+        page={page}
+        setPage={setPage}
+        setView={setView}
+        onLogout={onLogout}
+        isMobile={isMobile}
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
+      {isMobile && (
+        <>
+          <button
+            onClick={() => setMobileOpen(v => !v)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            style={{
+              position:"fixed", top:16, left: mobileOpen ? 232 : 16, zIndex:140,
+              width:42, height:42, borderRadius:12,
+              border:`1px solid rgba(255,255,255,0.13)`,
+              background:"rgba(4,5,4,0.90)",
+              backdropFilter:"blur(18px)",
+              WebkitBackdropFilter:"blur(18px)",
+              color: mobileOpen ? LIME : "#fff",
+              fontSize:18, fontWeight:700, cursor:"pointer",
+              transition:"all 0.2s ease",
+              boxShadow: mobileOpen ? `0 0 0 1px ${LIME}44, 0 10px 28px rgba(0,0,0,0.45)` : "0 8px 24px rgba(0,0,0,0.40)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+            }}
+          >
+            {mobileOpen ? "X" : (
+              <span style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                <span style={{ width:14, height:2, borderRadius:2, background:"#fff", display:"block" }} />
+                <span style={{ width:14, height:2, borderRadius:2, background:"#fff", display:"block" }} />
+                <span style={{ width:14, height:2, borderRadius:2, background:"#fff", display:"block" }} />
+              </span>
+            )}
+          </button>
+          <div
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+            style={{
+              position:"fixed", inset:0, zIndex:120,
+              background:"rgba(3,4,3,0.48)",
+              backdropFilter:"blur(2px)",
+              WebkitBackdropFilter:"blur(2px)",
+              opacity: mobileOpen ? 1 : 0,
+              pointerEvents: mobileOpen ? "auto" : "none",
+              transition:"opacity 220ms ease",
+            }}
+          />
+        </>
+      )}
       <main style={{
-        marginLeft:220, flex:1, padding:"40px 48px",
-        maxWidth:"calc(100vw - 220px)", minHeight:"100vh",
+        marginLeft:isMobile ? 0 : 220, flex:1, padding:isMobile ? "86px 18px 26px" : "40px 48px",
+        maxWidth:isMobile ? "100vw" : "calc(100vw - 220px)", minHeight:"100vh",
         position:"relative", overflow:"hidden",
         backgroundImage:`linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)`,
         backgroundSize:"80px 80px",
