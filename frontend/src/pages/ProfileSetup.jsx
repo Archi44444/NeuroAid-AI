@@ -185,7 +185,7 @@ export default function ProfileSetup({ onComplete, user }) {
               <div>
                 <label style={labelStyle}>Education Level</label>
                 <select value={data.education} onChange={e => update("education", e.target.value)}
-                  style={{ ...inputStyle, background: T.bg2 }}>
+                  style={{ ...inputStyle, background: '#1a1a1a', colorScheme: 'dark' }}>
                   <option value="">Select…</option>
                   {["High School","Some College","Bachelor's","Master's","Doctoral","Professional Degree"].map(e => (
                     <option key={e} value={e}>{e}</option>

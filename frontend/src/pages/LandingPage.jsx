@@ -289,6 +289,7 @@ export default function LandingPage({ setView }) {
   const [showMore,setShowMore]     = useState(false);
   const [mounted,setMounted]       = useState(false);
   const [navOpen,setNavOpen]       = useState(null);
+  const [showDemo,setShowDemo]     = useState(false);
   const moreRef = useRef(null);
 
   // Smoothed mouse for parallax
@@ -433,7 +434,7 @@ export default function LandingPage({ setView }) {
               onMouseEnter={e=>{e.currentTarget.style.background="#d4ff40";e.currentTarget.style.transform="translateY(-2px)";}}
               onMouseLeave={e=>{e.currentTarget.style.background=C.lime;e.currentTarget.style.transform="none";}}
             >Start Free Assessment →</button>
-            <button style={{
+            <button onClick={()=>setShowDemo(true)} style={{
               background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",
               color:C.offWhite,fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:15,
               padding:"13px 28px",borderRadius:50,cursor:"pointer",
@@ -441,7 +442,45 @@ export default function LandingPage({ setView }) {
             }}
               onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.10)";e.currentTarget.style.transform="translateY(-2px)";}}
               onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.transform="none";}}
-            >Watch Demo ▶</button>
+            >▶ Watch Demo</button>
+
+            {/* Demo Video Modal */}
+            {showDemo && createPortal(
+              <div onClick={()=>setShowDemo(false)} style={{ position:"fixed",inset:0,zIndex:99999,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(14px)",display:"flex",alignItems:"center",justifyContent:"center",padding:24 }}>
+                <div onClick={e=>e.stopPropagation()} style={{ width:"100%",maxWidth:840,background:"rgba(8,10,8,0.98)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,overflow:"hidden",boxShadow:"0 40px 120px rgba(0,0,0,0.90)",animation:"dd-in 0.28s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+                  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 26px",borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
+                    <div>
+                      <div style={{ display:"inline-flex",alignItems:"center",gap:8,background:`rgba(200,241,53,0.10)`,border:`1px solid ${C.lime}33`,borderRadius:99,padding:"4px 12px",marginBottom:6,fontSize:10,fontWeight:700,color:C.lime,letterSpacing:1.5,textTransform:"uppercase" }}>
+                        <span style={{ width:5,height:5,borderRadius:"50%",background:C.lime,display:"inline-block",animation:"pulse-dot 2s infinite" }} />
+                        Live Demo
+                      </div>
+                      <div style={{ fontWeight:900,fontSize:18,color:C.white,letterSpacing:-0.5 }}>NeuroAid in Action</div>
+                      <div style={{ fontSize:12,color:"#555",marginTop:2 }}>See the complete cognitive screening workflow</div>
+                    </div>
+                    <button onClick={()=>setShowDemo(false)} style={{ background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#888",width:34,height:34,borderRadius:"50%",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>✕</button>
+                  </div>
+                  <div style={{ padding:24, display:"flex", flexDirection:"column", alignItems:"center" }}>
+                    <div style={{ position:"relative",paddingBottom:"56.25%",height:0,borderRadius:16,overflow:"hidden",background:"#000",width:"100%" }}>
+                      <iframe
+                        style={{ position:"absolute",top:0,left:0,width:"100%",height:"100%" }}
+                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
+                        title="NeuroAid Platform Demo"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                    <div style={{ display:"flex",gap:10,marginTop:18,justifyContent:"center",alignItems:"center",width:"100%" }}>
+                      <div style={{ fontSize:12,color:"#555" }}>Replace the YouTube URL with your actual demo video</div>
+                      <button onClick={()=>{setShowDemo(false);setView("login");}} style={{ background:C.lime,border:"none",color:"#080808",fontWeight:700,fontSize:14,padding:"10px 24px",borderRadius:50,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap" }}>
+                        Try It Free →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
           </div>
         </div>
 

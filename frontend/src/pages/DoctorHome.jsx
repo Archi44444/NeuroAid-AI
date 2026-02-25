@@ -75,25 +75,28 @@ export default function DoctorHome({ setPage, setSelectedPatient }) {
             ))}
           </div>
 
-          {/* Average disease risk across all patients */}
+          {/* Neural Pattern Anomaly Indices */}
           {withResults.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>
               {[
-                { key: "alzheimers_risk", label: "Avg. Alzheimer's Risk", color: "#a78bfa" },
-                { key: "dementia_risk",   label: "Avg. Dementia Risk",    color: T.amber   },
-                { key: "parkinsons_risk", label: "Avg. Parkinson's Risk", color: T.blue    },
+                { key: "alzheimers_risk", label: "Avg. Memory Deviation Index", icon: "🧠", color: "#a78bfa", desc: "Episodic & working memory divergence" },
+                { key: "dementia_risk",   label: "Avg. Executive Drift Score",  icon: "🎯", color: T.amber,   desc: "Inhibitory control & processing speed" },
+                { key: "parkinsons_risk", label: "Avg. Motor Anomaly Index",    icon: "⚙️", color: T.blue,    desc: "Motor rhythm & coordination patterns" },
               ].map(d => {
                 const pct = avg(d.key);
                 return (
                   <DarkCard key={d.key} style={{ padding: 22, border: `1px solid ${d.color}20` }}>
-                    <div style={{ fontSize: 11, color: T.creamFaint, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>{d.label}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 18 }}>{d.icon}</span>
+                      <div style={{ fontSize: 10, color: T.creamFaint, textTransform: "uppercase", letterSpacing: 1, lineHeight: 1.3 }}>{d.label}</div>
+                    </div>
                     <div style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 900, fontSize: 44, color: d.color, lineHeight: 1, marginBottom: 10 }}>
                       {pct}<span style={{ fontSize: 16, color: "#555" }}>%</span>
                     </div>
                     <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.07)" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: d.color, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontSize: 11, color: "#555", marginTop: 8 }}>across {withResults.length} assessed patient{withResults.length !== 1 ? "s" : ""}</div>
+                    <div style={{ fontSize: 10, color: "#555", marginTop: 8 }}>{d.desc} · {withResults.length} patient{withResults.length !== 1 ? "s" : ""}</div>
                   </DarkCard>
                 );
               })}

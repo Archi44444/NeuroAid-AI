@@ -57,7 +57,7 @@ export default function AssessmentHub({ setPage }) {
           Assessment <span style={{ color:LIME }}>Hub.</span>
         </h1>
         <p style={{ color:"#555", fontSize:14, fontWeight:500 }}>
-          Complete all 5 tests to generate Alzheimer's · Dementia · Parkinson's risk scores.
+          Complete all 5 cognitive tests to generate your full cognitive performance profile.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export default function AssessmentHub({ setPage }) {
         disabled={!allDone || loading}
         style={{ fontSize:15, padding:"13px 28px" }}
       >
-        {loading ? "⏳ Analyzing 18 features…" : !allDone ? `Complete ${5-completedCount} more test${5-completedCount>1?"s":""}` : "🧠 Submit & Get Disease Risk Scores →"}
+        {loading ? "⏳ Analyzing 18 features…" : !allDone ? `Complete ${5-completedCount} more test${5-completedCount>1?"s":""}` : "🧠 Submit & Get Cognitive Scores →"}
       </Btn>
     </div>
   );

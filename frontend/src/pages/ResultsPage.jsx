@@ -2,6 +2,7 @@ import { useState } from "react";
 import { T } from "../utils/theme";
 import { DarkCard, Btn, MiniChart } from "../components/RiskDashboard";
 import { useAssessment } from "../context/AssessmentContext";
+import TransparencyReport from "../components/TransparencyReport";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ETHICAL FRAMING SYSTEM
@@ -499,6 +500,7 @@ export default function ResultsPage({ setPage }) {
   const { apiResult, profile, error, reset } = useAssessment();
   const [expandedDomain, setExpandedDomain] = useState(null);
   const [showRaw, setShowRaw] = useState(false);
+  const [showTransparency, setShowTransparency] = useState(false);
 
   if (!apiResult || typeof apiResult !== "object" || Object.keys(apiResult).length === 0) {
     return (
@@ -527,11 +529,11 @@ export default function ResultsPage({ setPage }) {
   const wellnessLevel = compositeRisk < 30 ? 0 : compositeRisk < 55 ? 1 : compositeRisk < 70 ? 2 : 3;
 
   const domainScores = [
-    { label: "Speech",    score: Math.max(0, Math.min(100, Math.round(r.speech_score))) },
-    { label: "Memory",    score: Math.max(0, Math.min(100, Math.round(r.memory_score))) },
-    { label: "Reaction",  score: Math.max(0, Math.min(100, Math.round(r.reaction_score))) },
-    { label: "Executive", score: Math.max(0, Math.min(100, Math.round(r.executive_score))) },
-    { label: "Motor",     score: Math.max(0, Math.min(100, Math.round(r.motor_score))) },
+    { label: "Speech",    score: Math.max(0, Math.min(100, Math.round(isNaN(r.speech_score) ? 0 : (r.speech_score ?? 0)))) },
+    { label: "Memory",    score: Math.max(0, Math.min(100, Math.round(isNaN(r.memory_score) ? 0 : (r.memory_score ?? 0)))) },
+    { label: "Reaction",  score: Math.max(0, Math.min(100, Math.round(isNaN(r.reaction_score) ? 0 : (r.reaction_score ?? 0)))) },
+    { label: "Executive", score: Math.max(0, Math.min(100, Math.round(isNaN(r.executive_score) ? 0 : (r.executive_score ?? 0)))) },
+    { label: "Motor",     score: Math.max(0, Math.min(100, Math.round(isNaN(r.motor_score) ? 0 : (r.motor_score ?? 0)))) },
   ];
 
   const radarData = Object.fromEntries(domainScores.map(d => [d.label, d.score]));
@@ -710,6 +712,22 @@ export default function ResultsPage({ setPage }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── AI Transparency Report ── */}
+      <div style={{ marginBottom: 28 }}>
+        <TransparencyReport
+          scores={{
+            memory: r.memory_score,
+            executive: r.executive_score,
+            motor: r.motor_score,
+            speech: r.speech_score,
+            reaction: r.reaction_score,
+          }}
+          profile={profile}
+          isOpen={showTransparency}
+          onToggle={() => setShowTransparency(v => !v)}
+        />
       </div>
 
       {/* ── Actions ── */}
