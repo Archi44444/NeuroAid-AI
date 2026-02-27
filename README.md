@@ -1,168 +1,335 @@
-# 🧠 NeuroAid V4 — Cognitive Risk Screening Tool
+# 🧠 NeuroAid AI  
+### Early Cognitive Risk Assessment & Clinical Intelligence Platform  
 
-> ⚠️ This is a behavioral screening tool, NOT a medical diagnostic system.
-> Always consult a qualified neurologist or physician for clinical evaluation.
+NeuroAid AI is a full-stack, AI-powered early cognitive risk assessment system designed to detect early indicators of neurological conditions such as:
 
----
+- Mild Cognitive Impairment (MCI)
+- Alzheimer’s Disease
+- Parkinson’s-related cognitive decline
+- General executive dysfunction patterns
 
-## What's New in V4
-
-V4 merges the best of two versions:
-- **V3 architecture** — JSON persistence, auth router, messaging, content manager, clean separation
-- **V2 brain logic** — 4-layer clinical pipeline, medical conditions, education correction
-- **New ML layer** — anomaly detection, hybrid scoring, confidence intervals, feature importance
+The platform combines **neuropsychological tests**, a **normalized scoring engine**, a **machine learning layer**, a **progress tracking system**, and a **clinically guarded AI assistant (NeuroBot)** to create a safe, scalable, and intelligent cognitive assessment ecosystem.
 
 ---
 
-## Architecture
+# 🚀 Core Objectives
 
+- Detect early cognitive risk using structured digital neuro-tests  
+- Normalize and aggregate test results into clinically meaningful scores  
+- Provide longitudinal progress tracking  
+- Enable doctor-patient structured workflows  
+- Integrate safe AI chat (RAG-based) for medical explanation  
+- Maintain clinical guardrails and non-diagnostic positioning  
+
+---
+
+# 🏗️ System Architecture
+
+```
+Frontend (React + Vite + Tailwind)
+        │
+        ▼
+FastAPI Backend (Python)
+        │
+        ├── ML Engine
+        ├── Scoring Engine
+        ├── Progress Tracker
+        ├── RAG Service (NeuroBot)
+        └── Knowledge Guardrails
+```
+
+---
+
+# 🖥️ Frontend (React + Vite + Tailwind)
+
+Located in:  
+```
+frontend/
+```
+
+### 🔹 Tech Stack
+
+- React (Vite)
+- Tailwind CSS
+- Firebase Authentication
+- Context API for state management
+- Modular test components
+
+---
+
+## 🧪 Cognitive Test Modules
+
+Each test simulates validated neuropsychological patterns:
+
+| Test | Cognitive Domain |
+|------|------------------|
+| Memory Test | Episodic memory |
+| Digit Span | Working memory |
+| Stroop Test | Executive control |
+| Reaction Test | Processing speed |
+| Speech Test | Language patterns |
+| Fluency Test | Verbal fluency |
+| Tap Test | Motor coordination |
+
+Each component:
+- Collects structured metrics
+- Sends normalized data to backend
+- Contributes to aggregate cognitive score
+
+---
+
+## 👤 User Flow
+
+1. User registers/login (Firebase Auth)
+2. Profile setup
+3. Takes cognitive tests
+4. Backend processes and normalizes scores
+5. Risk Dashboard shows:
+   - Cognitive risk level
+   - Domain-wise breakdown
+   - Trend graph
+6. User can:
+   - View progress
+   - Select doctor (1 doctor → max 10 patients)
+   - Message doctor
+   - Chat with NeuroBot
+
+---
+
+## 👩‍⚕️ Doctor Workflow
+
+- Doctor registration
+- Dashboard view of assigned patients
+- Neural pattern anomaly visualization
+- Patient-specific score history
+- Messaging system
+
+---
+
+# ⚙️ Backend (FastAPI)
+
+Located in:
 ```
 backend/
-├── core/                          ← NEW in V4 (V2 logic + ML)
-│   ├── clinical_config.py         ← Age norms, education correction, condition multipliers, fatigue
-│   ├── ml_engine.py               ← Hybrid scoring, anomaly detection, confidence intervals
-│   └── progress_tracker.py        ← Trend analysis, trajectory computation
+```
+
+---
+
+## 🔹 Core Components
+
+### 1️⃣ ML Engine (`core/ml_engine.py`)
+
+Responsible for:
+- Risk probability modeling
+- Feature aggregation
+- Weight assignment
+- Score interpretation
+
+Uses:
+- Structured test features
+- Weighted domain scores
+- Risk categorization logic
+
+---
+
+### 2️⃣ Clinical Config (`core/clinical_config.py`)
+
+Defines:
+- Domain weightings
+- Risk thresholds
+- Safe interpretation ranges
+- Clinical guard parameters
+
+Ensures:
+- Non-diagnostic positioning
+- Safe output framing
+
+---
+
+### 3️⃣ Scoring & Normalization Logic
+
+Each test score is:
+
+```
+Raw Score → Normalized Score → Domain Score → Weighted Aggregate Score
+```
+
+Normalization:
+- Age-adjusted (if configured)
+- Time-adjusted for reaction tasks
+- Error-weighted for executive tasks
+
+Final Output:
+- Low Risk
+- Moderate Risk
+- Elevated Risk
+
+---
+
+### 4️⃣ Progress Tracker (`core/progress_tracker.py`)
+
+Tracks:
+- Historical test attempts
+- Trend analysis
+- Domain-wise progression
+- Cognitive stability patterns
+
+Enables:
+- Longitudinal monitoring
+- Doctor comparison dashboard
+- Mini-chart visualizations
+
+---
+
+### 5️⃣ RAG Service (`rag_service.py`)
+
+NeuroBot uses:
+- Retrieval-Augmented Generation
+- Knowledge base indexing
+- Guardrail filtering
+
+Workflow:
+```
+User Query
+   ↓
+Guardrail Filtering
+   ↓
+Knowledge Retrieval
+   ↓
+LLM Explanation
+   ↓
+Safe Response Formatting
+```
+
+NeuroBot:
+- Explains difficult medical terms
+- Clarifies score meanings
+- Avoids diagnosis claims
+- Redirects emergency cases safely
+
+---
+
+### 6️⃣ Guardrails (`knowledge_base/guardrails.py`)
+
+Prevents:
+- Diagnostic statements
+- Medication recommendations
+- Emergency mismanagement
+- High-risk advice
+
+Ensures:
+- Medical safety compliance
+- Ethical AI usage
+
+---
+
+# 🔐 Authentication
+
+Handled via Firebase:
+
+- Secure login
+- Token-based session validation
+- Role-based UI (Patient / Doctor)
+
+---
+
+# 📁 Project Structure
+
+```
+NeuroAid-Clean/
 │
-├── routers/
-│   ├── analyze.py                 ← Main scoring pipeline (updated for V4)
-│   ├── auth.py                    ← JSON-based auth (register/login/logout)
-│   ├── messages.py                ← Patient–doctor messaging
-│   └── content.py                 ← Doctor content manager
+├── backend/
+│   ├── main.py
+│   ├── config.py
+│   ├── rag_service.py
+│   ├── core/
+│   │   ├── ml_engine.py
+│   │   ├── clinical_config.py
+│   │   └── progress_tracker.py
+│   ├── routers/
+│   │   ├── analyze.py
+│   │   ├── auth.py
+│   │   ├── chat.py
+│   │   ├── content.py
+│   │   └── messages.py
+│   ├── models/
+│   │   └── schemas.py
+│   ├── knowledge_base/
+│   ├── services/
+│   └── data/
 │
-├── services/
-│   └── ai_service.py              ← 18-feature extractor + 3-disease logistic models
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── context/
+│   │   ├── services/
+│   │   └── utils/
 │
-├── models/
-│   └── schemas.py                 ← Pydantic models (extended for V4 fields)
-│
-└── data/                          ← JSON persistence (gitignored)
-    ├── users.json
-    ├── sessions.json
-    ├── results.json
-    └── messages.json
+└── README.md
 ```
 
 ---
 
-## Scoring Pipeline (4 Layers)
+# 🧠 Risk Dashboard Logic
 
-### Layer 1 — Feature Extraction (18 features)
-Five cognitive domains → one 18-dimensional feature vector:
-- **Speech (5):** WPM, speed deviation, variability, pause ratio, start delay
-- **Memory (5):** Immediate recall, delayed recall, intrusions, latency, order ratio
-- **Reaction (5):** Mean RT, std RT, min RT, drift, miss count
-- **Executive (2):** Stroop error rate, Stroop RT
-- **Motor (1):** Tap interval std
+The dashboard displays:
 
-### Layer 2 — Disease-Specific Logistic Models
-Three separate logistic regression models with clinically-tuned weights:
-- **Alzheimer's** — dominated by memory + word-finding
-- **General Dementia** — attention + processing speed + broad decline
-- **Parkinson's** — motor timing + bradykinesia
+- Overall Cognitive Score
+- Domain-wise breakdown
+- Neural anomaly indicators
+- Risk category badge
+- Trend chart
 
-### Layer 3 — Clinical Adjustments (from V2)
-- **Age-adjusted z-score norms** — population-based correction per age bracket
-- **Education correction** — cognitive reserve factor on memory score
-- **Medical condition multipliers** — 7 clinical comorbidities (diabetes, hypertension, stroke, etc.)
-- **Fatigue confidence** — session quality score with retest recommendation
+Behind the scenes:
 
-### Layer 4 — ML Hybrid Scoring
 ```
-Final Risk = 0.6 × Clinical-Adjusted Probability + 0.4 × Raw ML Probability
-```
-Plus:
-- **95% Confidence Interval** on hybrid risk
-- **Progress Anomaly Detection** (Z-score based) — alerts on sudden drops
-- **Feature Importance** — top 6 explainable clinical factors
-
----
-
-## API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register patient or doctor |
-| POST | `/api/auth/login` | Login with role validation |
-| POST | `/api/auth/logout` | Invalidate session |
-| GET | `/api/auth/me` | Get current user profile |
-| PUT | `/api/auth/me` | Update profile |
-| GET | `/api/auth/patients` | Doctor: list all patients |
-| GET | `/api/auth/doctors` | Patient: list all doctors |
-
-### Analysis
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/analyze` | Run full cognitive assessment |
-| GET | `/api/results/my` | Get own results + progress summary |
-| GET | `/api/results/patient/{id}` | Doctor: get patient results |
-
-### Messaging
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/messages/send` | Send message |
-| GET | `/api/messages/{other_user_id}` | Get conversation |
-| GET | `/api/conversations` | List all conversations |
-| GET | `/api/messages/unread/count` | Unread count |
-
----
-
-## New Request Fields (V4)
-
-The `/api/analyze` endpoint now accepts two new optional objects:
-
-```json
-{
-  "conditions": {
-    "diabetes": false,
-    "hypertension": true,
-    "stroke_history": false,
-    "family_alzheimers": true,
-    "parkinsons_dx": false,
-    "depression": false,
-    "thyroid_disorder": false
-  },
-  "fatigue": {
-    "tired": false,
-    "sleep_deprived": true,
-    "sick": false,
-    "anxious": false
-  }
-}
+Domain Score_i × Clinical Weight_i
+                ↓
+        Aggregated Risk Index
+                ↓
+     Categorized Risk Output
 ```
 
 ---
 
-## New Response Fields (V4)
+# 💬 Messaging System
 
-```json
-{
-  "hybrid_risk": 0.3841,
-  "confidence": 0.88,
-  "recommend_retest": false,
-  "ci_lower": 0.344,
-  "ci_upper": 0.424,
-  "ci_label": "38.4% (±4%)",
-  "anomaly_alert": "none",
-  "anomaly_details": null,
-  "feature_importance": [
-    {"feature": "delayed_recall_accuracy", "importance": 0.35, "value": 72.5},
-    {"feature": "immediate_recall_accuracy", "importance": 0.30, "value": 78.0}
-  ]
-}
-```
+- Patient ↔ Doctor communication
+- Secure routing via backend
+- Role-based message access
 
 ---
 
-## Setup & Run
+# 📊 Example Risk Interpretation
+
+| Risk Score | Category |
+|------------|----------|
+| 0–30 | Low Risk |
+| 31–60 | Moderate Risk |
+| 61–100 | Elevated Risk |
+
+*(Thresholds configurable in clinical_config.py)*
+
+---
+
+# 🛠️ Installation Guide
+
+## Backend Setup
 
 ```bash
-# Backend
 cd backend
+python -m venv venv
+source venv/bin/activate   # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload
+```
 
-# Frontend
+---
+
+## Frontend Setup
+
+```bash
 cd frontend
 npm install
 npm run dev
@@ -170,9 +337,107 @@ npm run dev
 
 ---
 
-## Validation Notes
+## Environment Variables
 
-All scoring uses approximate population norms inspired by MMSE/MoCA literature.
-Logistic model weights are clinically-tuned heuristics for hackathon use.
-Validation metrics (sensitivity 0.82, specificity 0.78, AUC 0.85) are simulated.
-**This tool requires real clinical validation before any medical use.**
+### Backend `.env`
+
+```
+OPENAI_API_KEY=
+DATABASE_URL=
+FIREBASE_SECRET=
+```
+
+### Frontend `.env`
+
+```
+VITE_FIREBASE_API_KEY=
+VITE_BACKEND_URL=
+```
+
+---
+
+# 🛡️ Safety & Compliance
+
+NeuroAid AI:
+
+- Does NOT provide diagnosis
+- Does NOT prescribe treatment
+- Redirects emergency language
+- Encourages professional consultation
+- Uses guarded medical explanations
+
+---
+
+# 🧩 Hackathon-Winning Elements
+
+- Real cognitive science integration
+- Multi-test digital neuro-battery
+- Risk normalization logic
+- ML scoring engine
+- Longitudinal tracking
+- Doctor-patient workflow
+- Guarded RAG chatbot
+- Clean UI/UX with domain separation
+
+---
+
+# 📈 Future Improvements
+
+- Real ML model training with dataset
+- Speech-to-text cognitive biomarkers
+- EEG integration simulation
+- Time-series anomaly detection
+- Graph-based patient risk clustering
+- Federated learning integration
+- Explainable AI (SHAP / LIME)
+- Deployment on cloud with CI/CD
+
+---
+
+# 🎯 Vision
+
+NeuroAid AI aims to become:
+
+> A scalable, ethical, AI-assisted early cognitive screening system  
+> bridging digital neuropsychology and modern machine intelligence.
+
+---
+
+# 👩‍💻 Author
+
+Built as a full-stack AI + ML cognitive intelligence platform integrating:
+
+- Core CS architecture
+- Applied ML
+- Clinical reasoning logic
+- Ethical AI constraints
+- Modern frontend engineering
+
+---
+
+# 📜 License
+
+See `frontend/LICENSE`
+
+---
+
+# ⚠️ Disclaimer
+
+NeuroAid AI is an **educational and assistive tool only**.  
+It is not a medical device and does not provide medical diagnosis.
+
+Users are strongly encouraged to consult licensed healthcare professionals for clinical decisions.
+
+---
+
+# 🌟 Final Thought
+
+NeuroAid AI is not just a project.  
+It is a demonstration of:
+
+- Core CS engineering
+- Applied ML reasoning
+- Ethical AI design
+- Healthcare-tech system architecture
+
+A powerful portfolio piece at the intersection of AI, medicine, and scalable software systems.his tool requires real clinical validation before any medical use.**
