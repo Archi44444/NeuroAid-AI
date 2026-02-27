@@ -358,9 +358,12 @@ export default function SpeechTest({ setPage }) {
 
     // WPM: from real transcribed word count
     const transcribedWC = tokenize(fullText).length;
+    // Guard: require at least 5s of audio to avoid absurd WPM from accidental clicks
+    const minRecordSec = 5;
+    const effectiveSec = Math.max(totalSec, minRecordSec);
     const wpm           = usingSpeechAPI
-      ? Math.round((transcribedWC / totalSec) * 60)
-      : Math.round((passageWC    / totalSec) * 60);  // fallback: assume passage read
+      ? Math.round((transcribedWC / effectiveSec) * 60)
+      : Math.round((passageWC    / effectiveSec) * 60);  // fallback: assume passage read
 
     // Word accuracy (0–100): how many passage words appeared in transcript
     const accuracy = usingSpeechAPI ? wordAccuracy(fullText, passage) : null;
@@ -368,7 +371,7 @@ export default function SpeechTest({ setPage }) {
     // Completion ratio: what fraction of passage was spoken
     const compRatio = usingSpeechAPI
       ? Math.min(transcribedWC / passageWC, 1.0)
-      : Math.min(totalSec / 35, 1.0);  // 35s ≈ average read time
+      : Math.min(effectiveSec / 35, 1.0);  // 35s ≈ average read time
 
     // Real pause ratio from Web Audio
     const finalPauseR = totalFrames.current > 0

@@ -22,6 +22,24 @@ export default function AssessmentHub({ setPage }) {
 
   async function handleSubmit() {
     setLoading(true); setError(null);
+
+    // ── Data quality guard ────────────────────────────────────────────────
+    const warnings = [];
+    if (speechData && speechData.wpm === 0) {
+      warnings.push("Speech test: no words detected — try re-recording with microphone enabled.");
+    }
+    if (reactionData && reactionData.times.length > 0) {
+      const allMisses = reactionData.times.every(t => t >= 3000);
+      if (allMisses) warnings.push("Reaction test: all rounds timed out — your score will be very low. Consider retaking.");
+    }
+    if (warnings.length > 0) {
+      // Show warnings but don't block — let user proceed
+      setError("⚠️ Data quality notice: " + warnings.join(" | ") + " You can still submit or retake the affected test.");
+      setLoading(false);
+      // Don't return — allow submit after user sees warning (they already clicked once)
+      // On second click (loading was reset), clear warning and proceed
+    }
+
     try {
       const payload = {
         speech_audio: speechData?.audio_b64 || null,

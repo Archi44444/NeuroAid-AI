@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { T } from "../utils/theme";
+import NeuroBot from "./NeuroBot";
 
 const LIME = "#C8F135";
 
@@ -457,6 +458,7 @@ export function Shell({ role, page, setPage, setView, children, onLogout }) {
           {children}
         </div>
       </main>
+      <NeuroBot />
     </div>
   );
 }

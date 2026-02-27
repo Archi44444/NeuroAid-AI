@@ -126,3 +126,8 @@ export async function getPendingRequests() {
 export async function approvePatient(patientId, action) {
   return request("POST", "/auth/doctors/approve", { patient_id: patientId, action }, true);
 }
+
+// ── Chat / RAG ────────────────────────────────────────────────────────────────
+export async function submitChat(question, user_context = {}) {
+  return request("POST", "/chat", { question, user_context });
+}
