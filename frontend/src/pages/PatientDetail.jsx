@@ -88,9 +88,9 @@ export default function PatientDetail({ patient, setPage }) {
     : null;
 
   const diseases = [
-    { key: "alzheimers", label: "Alzheimer's", color: "#a78bfa" },
-    { key: "dementia",   label: "Dementia",    color: T.amber   },
-    { key: "parkinsons", label: "Parkinson's", color: T.blue    },
+    { key: "alzheimers", label: "Memory & Recall",       icon: "🧩", color: "#a78bfa" },
+    { key: "dementia",   label: "Attention & Processing", icon: "🌀", color: T.amber   },
+    { key: "parkinsons", label: "Motor Coordination",     icon: "🎯", color: T.blue    },
   ];
 
   return (
@@ -187,7 +187,7 @@ export default function PatientDetail({ patient, setPage }) {
               return (
                 <DarkCard key={d.key} style={{ padding: 24, border: `1px solid ${d.color}20` }} hover={false}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontWeight: 700, color: T.cream, fontSize: 15 }}>{d.label}</div>
+                    <div style={{ fontWeight: 700, color: T.cream, fontSize: 15 }}>{d.icon} {d.label}</div>
                     <span style={{ background: `${lvlColor}18`, color: lvlColor, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, border: `1px solid ${lvlColor}33` }}>{level}</span>
                   </div>
                   <div style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 900, fontSize: 48, color: d.color, lineHeight: 1, marginBottom: 8 }}>
@@ -224,7 +224,7 @@ export default function PatientDetail({ patient, setPage }) {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                    {["Date", "Overall", "Speech", "Memory", "Reaction", "Alzheimer's", "Dementia", "Parkinson's"].map(h => (
+                    {["Date", "Overall", "Speech", "Memory", "Reaction", "🧩 Memory & Recall", "🌀 Attention & Processing", "🎯 Motor Coordination"].map(h => (
                       <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 10, fontWeight: 600, color: T.creamFaint, letterSpacing: 1, textTransform: "uppercase" }}>{h}</th>
                     ))}
                   </tr>

@@ -137,6 +137,9 @@ def extract_speech_features(audio_b64=None, speech: Optional[SpeechData] = None)
     """
     if speech:
         wpm       = speech.wpm if speech.wpm and speech.wpm > 0 else _estimate_wpm(audio_b64)
+        # Clamp to realistic range (10–350 wpm) to prevent absurd scores from
+        # accidental short recordings on the frontend.
+        wpm       = float(np.clip(wpm, 10.0, 350.0))
         speed_dev = speech.speed_deviation if speech.speed_deviation is not None else _estimate_speed_dev(wpm)
         spvar     = speech.speech_speed_variability if speech.speech_speed_variability is not None else speed_dev
         pause_r   = speech.pause_ratio if speech.pause_ratio is not None else 0.15
@@ -219,17 +222,21 @@ def extract_memory_features(memory_results: dict, memory: Optional[MemoryData] =
     latency_pen    = min((latenc - 2) * 4, 25) if latenc > 2 else 0
     order_bonus    = order * 15
     intrusion_pen  = min(intrus * 5, 25)
-    score = float(np.clip(accuracy_score - latency_pen + order_bonus - intrusion_pen + random.uniform(-2, 2), 0, 100))
+    score = float(np.clip(accuracy_score - latency_pen + order_bonus - intrusion_pen, 0, 100))
     return round(score, 2), feats
 
 
 def extract_reaction_features(reaction_times: list, reaction: Optional[ReactionData] = None) -> tuple[float, dict]:
     times      = reaction.times if reaction else reaction_times
-    miss_count = reaction.miss_count or 0
-    init_delay = (reaction.initiation_delay or random.uniform(150, 400)) if reaction else random.uniform(150, 400)
+    miss_count = reaction.miss_count or 0 if reaction else 0
+    init_delay = (reaction.initiation_delay or 300.0) if reaction else 300.0
 
     if not times:
-        times = [random.uniform(250, 450) for _ in range(5)]
+        # No valid times at all (edge case: test never started)
+        # Use conservative fallback that scores poorly but doesn't hide the issue
+        times = [TIMEOUT_MS if TIMEOUT_MS else 3000.0] * 7  # type: ignore[name-defined]
+        times = [3000.0] * 7  # 3s = maximum penalty reaction time
+        miss_count = 7
 
     arr      = np.array(times, dtype=float)
     mean_rt  = float(np.mean(arr))
@@ -248,7 +255,7 @@ def extract_reaction_features(reaction_times: list, reaction: Optional[ReactionD
     var_pen     = float(np.clip(std_rt / 8, 0, 20))           # variability penalty (max -20)
     drift_pen   = float(np.clip(max(drift, 0) / 15, 0, 15))   # fatigue penalty (max -15)
     miss_pen    = float(np.clip(miss_count * 8, 0, 25))        # miss penalty (max -25)
-    score = float(np.clip(speed_score - var_pen - drift_pen - miss_pen + random.uniform(-2, 2), 0, 100))
+    score = float(np.clip(speed_score - var_pen - drift_pen - miss_pen, 0, 100))
     return round(score, 2), feats
 
 
@@ -264,7 +271,7 @@ def extract_executive_features(stroop: Optional[StroopData] = None) -> tuple[flo
 
     error_pen = min(error_rate * 200, 60)
     rt_pen    = min((stroop_rt - 400) / 400 * 40, 40) if stroop_rt > 400 else 0
-    score = float(np.clip(100 - error_pen - rt_pen + random.uniform(-2, 2), 0, 100))
+    score = float(np.clip(100 - error_pen - rt_pen, 0, 100))
     return round(score, 2), feats
 
 
@@ -278,7 +285,7 @@ def extract_motor_features(tap: Optional[TapData] = None) -> tuple[float, dict]:
     feats = dict(tap_interval_std=round(tap_std, 2))
     # Lower std = more consistent = better motor control
     penalty = min(tap_std / 2, 60)
-    score   = float(np.clip(100 - penalty + random.uniform(-2, 2), 0, 100))
+    score   = float(np.clip(100 - penalty, 0, 100))
     return round(score, 2), feats
 
 

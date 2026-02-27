@@ -38,10 +38,15 @@ export default function ReactionTest({ setPage }) {
     phaseRef.current = "done";
     setPhase("done");
 
-    if (!finalTimes.length) return;
+    // Represent each miss as TIMEOUT_MS so backend always gets a non-empty
+    // times array and can score correctly (all-miss → all 3000ms = near 0 score).
+    const missAsTimes = Array(finalMisses).fill(TIMEOUT_MS);
+    const allTimes    = [...finalTimes, ...missAsTimes];
+
+    if (!allTimes.length) return; // guard: ROUNDS must be > 0
 
     setReactionData({
-      times:      finalTimes,
+      times:      allTimes,
       miss_count: finalMisses,
       initiation_delay: finalTimes[0] ?? null,
     });
